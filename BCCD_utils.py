@@ -225,19 +225,27 @@ def parse_annotation(annotation_file): #FILE not path, because path is to folder
 
 
 def split_dataset(images, annotations, test_size=0.2, random_state=42):
-        """
-        Split the dataset into training and testing sets.
+    """
+    Split the dataset into training and testing sets.
 
-        :param images: list of image file paths
-        :param annotations: list of annotation file paths
-        :param test_size: proportion of the dataset to include in the test split
-        :param random_state: random seed for reproducibility
-        :return: train_images, test_images, train_annotations, test_annotations
-        """
-        train_images, test_images, train_annotations, test_annotations = train_test_split(
-            images, annotations, test_size=0.2, random_state=random_state)
-        
-        return train_images, test_images, train_annotations, test_annotations
+    :param images: list of image file paths
+    :param annotations: list of annotation file paths
+    :param test_size: proportion of the dataset to include in the test split
+    :param random_state: random seed for reproducibility
+    :return: train_images, test_images, train_annotations, test_annotations
+    """
+    train_images, test_images, train_annotations, test_annotations = train_test_split(
+        images, annotations, test_size=0.2, random_state=random_state)
+    
+    return train_images, test_images, train_annotations, test_annotations
+
+if __name__ == '__main__':
+    """Change paths and output folder accordingly to your setup"""
+    # Define images and annotations variables before calling split_dataset
+    images = []  # Add your list of image file paths here
+    annotations = []  # Add your list of annotation file paths here
+    split_dataset(images=images, annotations=annotations, test_size=0.2, random_state=42)
+    
 
 
 def create_data_lists(annotation_path, output_folder):

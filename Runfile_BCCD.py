@@ -36,20 +36,20 @@ initialize_bccd_trainvaltest_data(train_path=train_path,
 
 
 # Structuring of the BCCD dataset (according to VOC) 
-from BCCD_utils import setup_annotations_for_dataset, setup_images_for_dataset
+# from BCCD_utils import setup_annotations_for_dataset, setup_images_for_dataset
 
-src_dir = os.path.abspath(r"BCCD.v3\Original")
-dest_dir = os.path.abspath(r"BCCD.v3\Annotations")
-setup_annotations_for_dataset(src_dir= src_dir, dest_dir=dest_dir)
+# src_dir = os.path.abspath(r"BCCD.v3\Original")
+# dest_dir = os.path.abspath(r"BCCD.v3\Annotations")
+# setup_annotations_for_dataset(src_dir= src_dir, dest_dir=dest_dir)
 
-src_dir = os.path.abspath(r"BCCD.v3\Original")
-dest_dir = os.path.abspath(r"BCCD.v3\Images")
-setup_images_for_dataset(src_dir= src_dir, dest_dir=dest_dir)
+# src_dir = os.path.abspath(r"BCCD.v3\Original")
+# dest_dir = os.path.abspath(r"BCCD.v3\Images")
+# setup_images_for_dataset(src_dir= src_dir, dest_dir=dest_dir)
 
 
 # Dataset prep and set up
-
-
+from BCCD_utils import split_dataset
+split_dataset(images=r'GA_Dataset\Images', annotations=r'GA_Dataset\Annotations', test_size=0.2, random_state=42)            
 
 
 # Creating datalists for the train, val and test data
