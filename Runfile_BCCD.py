@@ -47,20 +47,31 @@ dest_dir = os.path.abspath(r"BCCD.v3\Images")
 setup_images_for_dataset(src_dir= src_dir, dest_dir=dest_dir)
 
 
+# Dataset prep and set up
+
+
+
+
 # Creating datalists for the train, val and test data
 from BCCD_utils import parse_annotation, create_data_lists
+annotation_path = r"GA_Dataset\Annotations"
+output_folder = cwd
 
 # Label map
-BCCD_labels = ('WBC', 'RBC', 'Platelets')
-label_map = {k: v + 1 for v, k in enumerate(BCCD_labels)}
-label_map['background'] = 0
+# Load labels from a file
+import csv
+with open('Label classes.csv', 'r') as f:
+    reader = csv.reader(f)
+    Labels = tuple(row[0] for row in reader)
+label_map = {k: v + 1 for v, k in enumerate(Labels)}
+# label_map['background'] = 0
 rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
 
 # Color map for bounding boxes of detected objects from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
 distinct_colors = ['#e6194b', '#3cb44b', '#ffe119', '#0082c8']
 label_color_map = {k: distinct_colors[i] for i, k in enumerate(label_map.keys())}
 
-create_data_lists(annotation_path=r"BCCD.v3\Annotations",
+create_data_lists(annotation_path=r"GA_Dataset\Annotations",
                   train_path=train_path,
                   test_path=test_path,
                   valid_path=valid_path,

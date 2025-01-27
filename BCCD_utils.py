@@ -6,6 +6,8 @@ import xml.etree.ElementTree as ET
 import torch
 import random
 import torchvision.transforms.functional as FT
+from sklearn.model_selection import train_test_split
+
 
 device = torch.device("cpu")
 
@@ -222,9 +224,23 @@ def parse_annotation(annotation_file): #FILE not path, because path is to folder
     return {'boxes': boxes, 'labels': labels, 'difficulties': difficulties}
 
 
+def split_dataset(images, annotations, test_size=0.2, random_state=42):
+        """
+        Split the dataset into training and testing sets.
+
+        :param images: list of image file paths
+        :param annotations: list of annotation file paths
+        :param test_size: proportion of the dataset to include in the test split
+        :param random_state: random seed for reproducibility
+        :return: train_images, test_images, train_annotations, test_annotations
+        """
+        train_images, test_images, train_annotations, test_annotations = train_test_split(
+            images, annotations, test_size=0.2, random_state=random_state)
+        
+        return train_images, test_images, train_annotations, test_annotations
 
 
-def create_data_lists(annotation_path, train_path, test_path, valid_path, output_folder):
+def create_data_lists(annotation_path, output_folder):
     """
     Create lists of images, the bounding boxes and labels of the objects in these images, and save these to file.
 
@@ -248,10 +264,10 @@ def create_data_lists(annotation_path, train_path, test_path, valid_path, output
         train_objects = list()
         n_objects = 0
 
-        for path in [train_path]:
+        for path in [annotation_path]:
 
             # Find IDs of images in training data by listing files in the Images directory
-            image_files = [file for file in os.listdir(train_path) if file.endswith('.jpg')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.jpg' extension (i.e., it is a JPEG image).
+            image_files = [file for file in os.listdir(train_path) if file.endswith('.tif')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.jpg' extension (i.e., it is a JPEG image).
             ids = [os.path.splitext(file)[0] for file in image_files] # Split the file name into the base name and extension, and take the base name (i.e., the part before '.jpg').
             
             print(f"Found {len(ids)} training images.")
@@ -271,7 +287,7 @@ def create_data_lists(annotation_path, train_path, test_path, valid_path, output
                 
                 n_objects += len(objects['boxes'])
                 train_objects.append(objects)
-                train_images.append(os.path.join(train_path, id + '.jpg'))
+                train_images.append(os.path.join(train_path, id + '.tif'))
                 
                 print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
 
@@ -296,7 +312,7 @@ def create_data_lists(annotation_path, train_path, test_path, valid_path, output
         for path in [test_path]:
 
             # Find IDs of images in training data by listing files in the Images directory
-            image_files = [file for file in os.listdir(test_path) if file.endswith('.jpg')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.jpg' extension (i.e., it is a JPEG image).
+            image_files = [file for file in os.listdir(test_path) if file.endswith('.tif')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.jpg' extension (i.e., it is a JPEG image).
             ids = [os.path.splitext(file)[0] for file in image_files] # Split the file name into the base name and extension, and take the base name (i.e., the part before '.jpg').
             
             print(f"Found {len(ids)} test images.")
@@ -316,7 +332,7 @@ def create_data_lists(annotation_path, train_path, test_path, valid_path, output
                 
                 n_objects += len(objects['boxes'])
                 test_objects.append(objects)
-                test_images.append(os.path.join(test_path, id + '.jpg'))
+                test_images.append(os.path.join(test_path, id + '.tif'))
                 
                 print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
 

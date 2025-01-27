@@ -6,7 +6,7 @@ from PIL import Image
 from BCCD_utils import transform
 
 
-class BCCDDataset(Dataset):
+class GA_Dataset(Dataset):
     """
     A PyTorch Dataset class to be used in a PyTorch DataLoader to create batches.
     """
