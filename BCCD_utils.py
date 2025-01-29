@@ -222,6 +222,8 @@ def parse_annotation(annotation_file): #FILE not path, because path is to folder
 
     return {'boxes': boxes, 'labels': labels, 'difficulties': difficulties}
 
+
+
 def convert_files_to_list(images_folder, annotations_folder):
     """
     Convert all files in two folders to two separate lists of their contents.
@@ -244,101 +246,82 @@ def convert_files_to_list(images_folder, annotations_folder):
                 
     return images_file_paths, annotations_file_paths
 
+images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
+
 if __name__ == '__main__':
     """Change paths and output folder accordingly to your setup"""
     images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
 
-    
 
-    def split_and_copy_files(images, annotations, output_folder, test_size=0.2, random_state=42):
-        """
-        Split and copy image and annotation files into train and test datasets.
 
-        :param images: list of image file paths
-        :param annotations: list of annotation file paths
-        :param output_folder: folder where the split datasets will be saved
-        :param test_size: proportion of the dataset to include in the test split
-        :param random_state: random seed for reproducibility
-        """
-        train_images, test_images, train_annotations, test_annotations = train_test_split(
-            images, annotations, test_size=test_size, random_state=random_state)
+def split_and_copy_files(images, annotations, output_folder, test_size=None, random_state=None):
+    if test_size is None:
+        test_size = 0.2
+    if random_state is None:
+        random_state = 42
 
+    train_images, test_images, train_annotations, test_annotations = train_test_split(
+        images, annotations, test_size=test_size, random_state=random_state)
+
+    create_folders(output_folder)
+    copy_files(train_images, os.path.join(output_folder, 'train', 'images'))
+    copy_files(test_images, os.path.join(output_folder, 'test', 'images'))
+    copy_files(train_annotations, os.path.join(output_folder, 'train', 'annotations'))
+    copy_files(test_annotations, os.path.join(output_folder, 'test', 'annotations'))
+
+    print(f"Files have been split and copied to {output_folder}")
+
+def create_folders(output_folder):
+    """
+    Create necessary folders for train and test datasets.
+    """
+    train_image_folder = os.path.join(output_folder, 'train', 'images')
+    test_image_folder = os.path.join(output_folder, 'test', 'images')
+    train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
+    test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
+    def create_folders(output_folder):
         train_image_folder = os.path.join(output_folder, 'train', 'images')
-        test_image_folder = os.path.join(output_folder, 'test', 'images')
         train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
-        test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
-
-        os.makedirs(train_image_folder, exist_ok=True)
-        os.makedirs(test_image_folder, exist_ok=True)
-        os.makedirs(train_annotation_folder, exist_ok=True)
-        os.makedirs(test_annotation_folder, exist_ok=True)
-
-        for image in train_images:
-            shutil.copy(image, train_image_folder)
-        for annotation in train_annotations:
-            shutil.copy(annotation, train_annotation_folder)
-        for image in test_images:
-            shutil.copy(image, test_image_folder)
-        for annotation in test_annotations:
-            shutil.copy(annotation, test_annotation_folder)
-
-        print(f"Files have been split and copied to {output_folder}")
-
-    if __name__ == '__main__':
-        images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
-        split_and_copy_files(images, annotations, output_folder=r'GA_Dataset\Split')
-        """
-        Split and copy image and annotation files into train and test datasets.
-
-        :param images: list of image file paths
-        :param annotations: list of annotation file paths
-        :param train_images: list of training image file paths
-        :param test_images: list of testing image file paths
-        :param train_annotations: list of training annotation file paths
-        :param test_annotations: list of testing annotation file paths
-        :param output_folder: folder where the split datasets will be saved
-        """
-        train_image_folder = os.path.join(output_folder, 'train', 'images')
         test_image_folder = os.path.join(output_folder, 'test', 'images')
-        train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
         test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
+        
+def copy_files(files, destination_folder):
+    """
+    Copy files to the destination folder.
+    :param files: list of file paths to be copied
+    :param destination_folder: folder where the files will be copied
+    """
+    if not os.path.exists(destination_folder):
+        os.makedirs(destination_folder)
+    for file in files:
+        shutil.copy(file, destination_folder)
+    :param files: list of file paths to be copied
+    :param destination_folder: folder where the files will be copied
+    """
+    for file in files:
+        shutil.copy(file, destination_folder)
+            
 
-        os.makedirs(train_image_folder, exist_ok=True)
-        os.makedirs(test_image_folder, exist_ok=True)
-        os.makedirs(train_annotation_folder, exist_ok=True)
-        os.makedirs(test_annotation_folder, exist_ok=True)
-
-        for image in train_images:
-            shutil.copy(image, train_image_folder)
-        for annotation in train_annotations:
-            shutil.copy(annotation, train_annotation_folder)
-        for image in test_images:
-            shutil.copy(image, test_image_folder)
-        for annotation in test_annotations:
-            shutil.copy(annotation, test_annotation_folder)
-
-        print(f"Files have been split and copied to {output_folder}")
-
-    if __name__ == '__main__':
+if __name__ == '__main__':
         images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
-        train_images, test_images, train_annotations, test_annotations = split_dataset(images, annotations, test_size=0.2, random_state=42)
-        split_and_copy_files(images, annotations, train_images, test_images, train_annotations, test_annotations, output_folder=r'GA_Dataset\Split')
+        output_folder = r'GA_Dataset\Split'
+        split_and_copy_files(images, annotations, output_folder)
 
 
 def split_dataset(images, annotations, test_size=0.2, random_state=42):
-    """
-    Split the dataset into training and testing sets.
+        split_and_copy_files(images, annotations, output_folder, test_size=0.2, random_state=42)
+        Split the dataset into training and testing sets.
 
-    :param images: list of image file paths
-    :param annotations: list of annotation file paths
-    :param test_size: proportion of the dataset to include in the test split
-    :param random_state: random seed for reproducibility
-    :return: train_images, test_images, train_annotations, test_annotations
-    """
-    train_images, test_images, train_annotations, test_annotations = train_test_split(
-        images, annotations, test_size=test_size, random_state=random_state)
-    
-    return train_images, test_images, train_annotations, test_annotations
+        :param images: list of image file paths
+        :param annotations: list of annotation file paths
+        :param test_size: proportion of the dataset to include in the test split
+        :param random_state: random seed for reproducibility
+        :return: train_images, test_images, train_annotations, test_annotations
+        """
+        train_images, test_images, train_annotations, test_annotations = train_test_split(
+            images, annotations, test_size=test_size, random_state=random_state)
+        
+        return train_images, test_images, train_annotations, test_annotations
 
 if __name__ == '__main__':
     """Change paths and output folder accordingly to your setup"""
