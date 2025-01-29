@@ -249,9 +249,7 @@ def convert_files_to_array(images_folder, annotations_folder):
 
 if __name__ == '__main__':
     """Change paths and output folder accordingly to your setup"""
-    images_folder = r'GA_Dataset\Images'
-    annotations_folder = r'GA_Dataset\Annotations'
-    images_contents, annotations_contents = convert_files_to_array(images_folder, annotations_folder)
+    convert_files_to_array(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
 
 
 def split_dataset(images, annotations, test_size=0.2, random_state=42):
