@@ -279,11 +279,6 @@ def create_folders(output_folder):
     test_image_folder = os.path.join(output_folder, 'test', 'images')
     train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
     test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
-    def create_folders(output_folder):
-        train_image_folder = os.path.join(output_folder, 'train', 'images')
-        train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
-        test_image_folder = os.path.join(output_folder, 'test', 'images')
-        test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
         
 def copy_files(files, destination_folder):
     """
@@ -295,13 +290,7 @@ def copy_files(files, destination_folder):
         os.makedirs(destination_folder)
     for file in files:
         shutil.copy(file, destination_folder)
-    :param files: list of file paths to be copied
-    :param destination_folder: folder where the files will be copied
-    """
-    for file in files:
-        shutil.copy(file, destination_folder)
-            
-
+        
 if __name__ == '__main__':
         images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
         output_folder = r'GA_Dataset\Split'
