@@ -247,8 +247,8 @@ def convert_files_to_list(images_folder, annotations_folder):
 if __name__ == '__main__':
     """Change paths and output folder accordingly to your setup"""
     images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
-    train_images, test_images, train_annotations, test_annotations = split_dataset(images, annotations, test_size=0.2, random_state=42)
 
+    
 
     def split_and_copy_files(images, annotations, output_folder, test_size=0.2, random_state=42):
         """
