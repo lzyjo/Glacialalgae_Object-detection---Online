@@ -48,7 +48,15 @@ initialize_bccd_trainvaltest_data(train_path=train_path,
 
 
 # Dataset prep and set up
-from BCCD_utils import split_dataset
+from BCCD_utils import split_dataset, convert_files_to_array
+images = ["image1.jpg", "image2.jpg", "image3.jpg"]
+annotations = ["annotation1.xml", "annotation2.xml", "annotation3.xml"]
+train_images, test_images, train_annotations, test_annotations = split_dataset(images, annotations)
+
+# Convert to array 
+convert_files_to_array(images, annotations)
+
+# Split the dataset into train, test and validation sets
 split_dataset(images=r'GA_Dataset\Images', annotations=r'GA_Dataset\Annotations', test_size=0.2, random_state=42)            
 
 

@@ -223,6 +223,36 @@ def parse_annotation(annotation_file): #FILE not path, because path is to folder
 
     return {'boxes': boxes, 'labels': labels, 'difficulties': difficulties}
 
+def convert_files_to_array(images_folder, annotations_folder):
+    """
+    Convert all files in two folders to two separate arrays of their contents.
+
+    :param images_folder: Path to the folder containing the image files
+    :param annotations_folder: Path to the folder containing the annotation files
+    :return: Tuple of two lists - (image file contents, annotation file contents)
+    """
+    images_file_contents = []
+    for file_name in os.listdir(images_folder):
+        file_path = os.path.join(images_folder, file_name)
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as file:
+                images_file_contents.append(file.read())
+
+    annotations_file_contents = []
+    for file_name in os.listdir(annotations_folder):
+        file_path = os.path.join(annotations_folder, file_name)
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as file:
+                annotations_file_contents.append(file.read())
+                
+    return images_file_contents, annotations_file_contents
+
+if __name__ == '__main__':
+    """Change paths and output folder accordingly to your setup"""
+    images_folder = r'GA_Dataset\Images'
+    annotations_folder = r'GA_Dataset\Annotations'
+    images_contents, annotations_contents = convert_files_to_array(images_folder, annotations_folder)
+
 
 def split_dataset(images, annotations, test_size=0.2, random_state=42):
     """
@@ -235,17 +265,15 @@ def split_dataset(images, annotations, test_size=0.2, random_state=42):
     :return: train_images, test_images, train_annotations, test_annotations
     """
     train_images, test_images, train_annotations, test_annotations = train_test_split(
-        images, annotations, test_size=0.2, random_state=random_state)
+        images, annotations, test_size=test_size, random_state=random_state)
     
     return train_images, test_images, train_annotations, test_annotations
 
 if __name__ == '__main__':
     """Change paths and output folder accordingly to your setup"""
-    # Define images and annotations variables before calling split_dataset
-    images = []  # Add your list of image file paths here
-    annotations = []  # Add your list of annotation file paths here
-    split_dataset(images=images, annotations=annotations, test_size=0.2, random_state=42)
-    
+    split_dataset(images=r'GA_Dataset\Images', annotations=r'GA_Dataset\Annotations', test_size=0.2, random_state=42)
+
+
 
 
 def create_data_lists(annotation_path, output_folder):
@@ -261,7 +289,7 @@ def create_data_lists(annotation_path, output_folder):
         and os.path.exists('TEST_objects.json') \
         and os.path.exists('TRAIN_images.json') \
         and os.path.exists('TRAIN_objects.json') \
-        and os.path.exists('VAL_images.json'):
+        and os.path.exists('TEST_images.json'):
         print('Datalists already created')
 
     else:
