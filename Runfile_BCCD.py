@@ -54,7 +54,7 @@ annotations = ["annotation1.xml", "annotation2.xml", "annotation3.xml"]
 train_images, test_images, train_annotations, test_annotations = split_dataset(images, annotations)
 
 # Convert to array 
-convert_files_to_array(images, annotations)
+convert_files_to_array(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
 
 # Split the dataset into train, test and validation sets
 split_dataset(images=r'GA_Dataset\Images', annotations=r'GA_Dataset\Annotations', test_size=0.2, random_state=42)            
