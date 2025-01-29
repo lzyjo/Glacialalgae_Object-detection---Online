@@ -48,7 +48,7 @@ initialize_bccd_trainvaltest_data(train_path=train_path,
 
 
 # Dataset prep and set up
-from BCCD_utils import split_dataset, convert_files_to_array
+from BCCD_utils import split_dataset, convert_files_to_list
 
 # Convert to array 
 convert_files_to_array(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
