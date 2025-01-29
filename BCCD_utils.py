@@ -255,6 +255,9 @@ if __name__ == '__main__':
 
 
 def split_and_copy_files(images, annotations, output_folder, test_size=None, random_state=None):
+    images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
+    output_folder = r'GA_Dataset\Formatted_data' # Change this to your desired output folder
+
     if test_size is None:
         test_size = 0.2
     if random_state is None:
@@ -271,50 +274,52 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
 
     print(f"Files have been split and copied to {output_folder}")
 
-def create_folders(output_folder):
-    """
-    Create necessary folders for train and test datasets.
-    """
-    train_image_folder = os.path.join(output_folder, 'train', 'images')
-    test_image_folder = os.path.join(output_folder, 'test', 'images')
-    train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
-    test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
-        
-def copy_files(files, destination_folder):
-    """
-    Copy files to the destination folder.
-    :param files: list of file paths to be copied
-    :param destination_folder: folder where the files will be copied
-    """
-    if not os.path.exists(destination_folder):
-        os.makedirs(destination_folder)
-    for file in files:
-        shutil.copy(file, destination_folder)
-        
-if __name__ == '__main__':
-        images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
-        output_folder = r'GA_Dataset\Split'
-        split_and_copy_files(images, annotations, output_folder)
-
-
-def split_dataset(images, annotations, test_size=0.2, random_state=42):
-        split_and_copy_files(images, annotations, output_folder, test_size=0.2, random_state=42)
-        Split the dataset into training and testing sets.
-
-        :param images: list of image file paths
-        :param annotations: list of annotation file paths
-        :param test_size: proportion of the dataset to include in the test split
-        :param random_state: random seed for reproducibility
-        :return: train_images, test_images, train_annotations, test_annotations
+    def convert_files_to_list(images_folder, annotations_folder):
         """
-        train_images, test_images, train_annotations, test_annotations = train_test_split(
-            images, annotations, test_size=test_size, random_state=random_state)
-        
-        return train_images, test_images, train_annotations, test_annotations
+        Convert all files in two folders to two separate lists of their contents.
+
+        :param images_folder: Path to the folder containing the image files
+        :param annotations_folder: Path to the folder containing the annotation files
+        :return: Tuple of two lists - (image file paths, annotation file paths)
+        """
+        images_file_paths = []
+        for file_name in os.listdir(images_folder):
+            file_path = os.path.join(images_folder, file_name)
+            if os.path.isfile(file_path):
+                images_file_paths.append(file_path)
+
+        annotations_file_paths = []
+        for file_name in os.listdir(annotations_folder):
+            file_path = os.path.join(annotations_folder, file_name)
+            if os.path.isfile(file_path):
+                annotations_file_paths.append(file_path)
+                    
+        return images_file_paths, annotations_file_paths
+
+    def create_folders(output_folder):
+        """
+        Create necessary folders for train and test datasets.
+        """
+        train_image_folder = os.path.join(output_folder, 'train', 'images')
+        test_image_folder = os.path.join(output_folder, 'test', 'images')
+        train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
+        test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
+            
+    def copy_files(files, destination_folder):
+        """
+        Copy files to the destination folder.
+        :param files: list of file paths to be copied
+        :param destination_folder: folder where the files will be copied
+        """
+        if not os.path.exists(destination_folder):
+            os.makedirs(destination_folder)
+        for file in files:
+            shutil.copy(file, destination_folder)
 
 if __name__ == '__main__':
-    """Change paths and output folder accordingly to your setup"""
-    split_dataset(images=r'GA_Dataset\Images', annotations=r'GA_Dataset\Annotations', test_size=0.2, random_state=42)
+    images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
+    output_folder = r'GA_Dataset\Split'
+    split_and_copy_files(images, annotations, output_folder)
 
 
 
