@@ -235,14 +235,14 @@ def convert_files_to_array(images_folder, annotations_folder):
     for file_name in os.listdir(images_folder):
         file_path = os.path.join(images_folder, file_name)
         if os.path.isfile(file_path):
-            with open(file_path, 'r') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
                 images_file_contents.append(file.read())
 
     annotations_file_contents = []
     for file_name in os.listdir(annotations_folder):
         file_path = os.path.join(annotations_folder, file_name)
         if os.path.isfile(file_path):
-            with open(file_path, 'r') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
                 annotations_file_contents.append(file.read())
                 
     return images_file_contents, annotations_file_contents
