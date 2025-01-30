@@ -271,11 +271,22 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
         """
         Create necessary folders for train and test datasets.
         """
+
+        if not os.path.exists(train_image_folder):
+            os.makedirs(train_image_folder)
+        if not os.path.exists(test_image_folder):
+            os.makedirs(test_image_folder)
+        if not os.path.exists(train_annotation_folder):
+            os.makedirs(train_annotation_folder)
+        if not os.path.exists(test_annotation_folder):
+            os.makedirs(test_annotation_folder)
+            
         train_image_folder = os.path.join(output_folder, 'train', 'images')
         test_image_folder = os.path.join(output_folder, 'test', 'images')
         train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
         test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
-            
+
+
     def copy_files(files, destination_folder):
         """
         Copy files to the destination folder.
