@@ -280,7 +280,6 @@ def create_folders(output_folder):
     test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
 
 if __name__ == '__main__':  
-    output_folder = r'GA_Dataset\Split'
     create_folders(output_folder)
 
 
