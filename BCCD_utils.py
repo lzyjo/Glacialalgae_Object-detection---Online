@@ -254,6 +254,11 @@ def create_folders(output_folder):
     Create necessary folders for train and test datasets.
     """
 
+    train_image_folder = os.path.join(output_folder, 'train', 'images')
+    test_image_folder = os.path.join(output_folder, 'test', 'images')
+    train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
+    test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
+
     if not os.path.exists(train_image_folder):
         os.makedirs(train_image_folder)
     else:
@@ -274,11 +279,6 @@ def create_folders(output_folder):
     else:
         print(f"Folder {test_annotation_folder} already exists.")
         
-    train_image_folder = os.path.join(output_folder, 'train', 'images')
-    test_image_folder = os.path.join(output_folder, 'test', 'images')
-    train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
-    test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
-
 if __name__ == '__main__':  
     create_folders(output_folder)
 
