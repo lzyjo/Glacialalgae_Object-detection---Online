@@ -54,8 +54,7 @@ from BCCD_utils import convert_files_to_list, split_and_copy_files
 # Split the dataset into train, test and validation sets
 images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations') # Convert to list 
 output_folder = r'GA_Dataset\Split' 
-split_and_copy_files(images, annotations, output_folder)
-
+convert_files_to_list
 
 
 

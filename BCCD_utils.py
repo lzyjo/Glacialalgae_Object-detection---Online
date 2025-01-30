@@ -223,35 +223,6 @@ def parse_annotation(annotation_file): #FILE not path, because path is to folder
     return {'boxes': boxes, 'labels': labels, 'difficulties': difficulties}
 
 
-
-def convert_files_to_list(images_folder, annotations_folder):
-    """
-    Convert all files in two folders to two separate lists of their contents.
-
-    :param images_folder: Path to the folder containing the image files
-    :param annotations_folder: Path to the folder containing the annotation files
-    :return: Tuple of two lists - (image file paths, annotation file paths)
-    """
-    images_file_paths = []
-    for file_name in os.listdir(images_folder):
-        file_path = os.path.join(images_folder, file_name)
-        if os.path.isfile(file_path):
-            images_file_paths.append(file_path)
-
-    annotations_file_paths = []
-    for file_name in os.listdir(annotations_folder):
-        file_path = os.path.join(annotations_folder, file_name)
-        if os.path.isfile(file_path):
-            annotations_file_paths.append(file_path)
-                
-    return images_file_paths, annotations_file_paths
-
-images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
-
-if __name__ == '__main__':
-    """Change paths and output folder accordingly to your setup"""
-    images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
-
 def convert_files_to_list(images_folder, annotations_folder):
     """
     Convert all files in two folders to two separate lists of their contents.
