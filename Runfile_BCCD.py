@@ -48,12 +48,13 @@ initialize_bccd_trainvaltest_data(train_path=train_path,
 
 
 # Dataset prep and set up
-from BCCD_utils import convert_files_to_list, split_and_copy_files
+from BCCD_utils import convert_files_to_list, split_and_copy_files, create_folders
 
 
 # Split the dataset into train, test and validation sets
 images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations') # Convert to list 
 output_folder = r'GA_Dataset\Split' 
+create_folders(output_folder) #create_folders(output_folder)
 split_and_copy_files(images, annotations, output_folder)
 
 

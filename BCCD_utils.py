@@ -249,6 +249,39 @@ if __name__ == '__main__':
     images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
 
 
+def create_folders(output_folder):
+    """
+    Create necessary folders for train and test datasets.
+    """
+
+    if not os.path.exists(train_image_folder):
+        os.makedirs(train_image_folder)
+    else:
+        print(f"Folder {train_image_folder} already exists.")
+
+    if not os.path.exists(test_image_folder):
+        os.makedirs(test_image_folder)
+    else:
+        print(f"Folder {test_image_folder} already exists.")
+
+    if not os.path.exists(train_annotation_folder):
+        os.makedirs(train_annotation_folder)
+    else:
+        print(f"Folder {train_annotation_folder} already exists")
+    
+    if not os.path.exists(test_annotation_folder):
+        os.makedirs(test_annotation_folder)
+    else:
+        print(f"Folder {test_annotation_folder} already exists.")
+        
+    train_image_folder = os.path.join(output_folder, 'train', 'images')
+    test_image_folder = os.path.join(output_folder, 'test', 'images')
+    train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
+    test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
+
+if __name__ == '__main__':  
+    create_folders(output_folder)
+
 def split_and_copy_files(images, annotations, output_folder, test_size=None, random_state=None):
 
     if test_size is None:
@@ -260,25 +293,6 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
         images, annotations, test_size=test_size, random_state=random_state)
 
     print(f"Files have been split and copied to {output_folder}")
-
-    def create_folders(output_folder):
-        """
-        Create necessary folders for train and test datasets.
-        """
-
-        if not os.path.exists(train_image_folder):
-            os.makedirs(train_image_folder)
-        if not os.path.exists(test_image_folder):
-            os.makedirs(test_image_folder)
-        if not os.path.exists(train_annotation_folder):
-            os.makedirs(train_annotation_folder)
-        if not os.path.exists(test_annotation_folder):
-            os.makedirs(test_annotation_folder)
-            
-        train_image_folder = os.path.join(output_folder, 'train', 'images')
-        test_image_folder = os.path.join(output_folder, 'test', 'images')
-        train_annotation_folder = os.path.join(output_folder, 'train', 'annotations')
-        test_annotation_folder = os.path.join(output_folder, 'test', 'annotations')
 
     create_folders(output_folder)
 
