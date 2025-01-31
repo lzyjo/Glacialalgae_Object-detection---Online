@@ -279,9 +279,6 @@ def create_folders(output_folder):
     else:
         print(f"Folder {test_annotation_folder} already exists.")
         
-if __name__ == '__main__':  
-    create_folders(output_folder)
-
 
 def copy_files(files, destination_folder):
     """
@@ -289,15 +286,21 @@ def copy_files(files, destination_folder):
     :param files: list of file paths to be copied
     :param destination_folder: folder where the files will be copied
     """
-    if not os.path.exists(destination_folder):
-        os.makedirs(destination_folder)
-        
-    for index, file in enumerate(files):
-        file_name = f"{index}.tif"  # Derive the file name from an object in a list and append .tif
-        dest_file_path = os.path.join(destination_folder, file_name)  # Create the destination file path by joining the destination folder and the file name
-        shutil.copy(file, dest_file_path) 
+    
+    if os.path.exists(destination_folder):
+        print("Destination directory already exists.")
+        if any(file.endswith('.tif') for file in os.listdir(destination_folder)):
+            print("Destination directory already contains .tif files.")
+            
+    else:
+        if not os.path.exists(destination_folder):
+            os.makedirs(destination_folder)
+        for index, file in enumerate(files):
+            file_name = f"{index}.tif"  # Derive the file name from an object in a list and append .tif
+            dest_file_path = os.path.join(destination_folder, file_name)  # Create the destination file path by joining the destination folder and the file name
+            shutil.copy(file, dest_file_path) 
 
-    print(f'Files copied to {destination_folder}') # Print a message indicating that the files have been copied to the destination folder
+        print(f'Files copied to {destination_folder}') # Print a message indicating that the files have been copied to the destination folder
 
 
 def split_and_copy_files(images, annotations, output_folder, test_size=None, random_state=None):
