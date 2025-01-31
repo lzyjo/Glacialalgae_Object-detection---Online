@@ -310,7 +310,12 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
     if random_state is None:
         random_state = 42
 
-    train_images, test_images, train_annotations, test_annotations = train_test_split(
+    if train_images and test_images and train_annotations and test_annotations:
+        print("Train and test lists already exist.")
+        return
+    
+    else:
+        train_images, test_images, train_annotations, test_annotations = train_test_split(
         images, annotations, test_size=test_size, random_state=random_state)
 
     create_folders(output_folder)
