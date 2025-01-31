@@ -283,7 +283,7 @@ if __name__ == '__main__':
     create_folders(output_folder)
 
 
-def copy_files(images, destination_folder):
+def copy_files(files, destination_folder):
     """
     Copy files to the destination folder.
     :param files: list of file paths to be copied
@@ -291,12 +291,14 @@ def copy_files(images, destination_folder):
     """
     if not os.path.exists(destination_folder):
         os.makedirs(destination_folder)
-    for file in files:
-        shutil.copy(file, destination_folder)
+        
+    for index, file in enumerate(files):
+        file_name = f"{index}.tif"  # Derive the file name from an object in a list and append .tif
+        dest_file_path = os.path.join(destination_folder, file_name)  # Create the destination file path by joining the destination folder and the file name
+        shutil.copy(file, dest_file_path) 
 
-if __name__ == '__main__':
-    destination_folder = r'GA_Dataset\Split'
-    copy_files(images, os.path.join(destination_folder, 'train', 'images'))
+    print(f'Files copied to {destination_folder}') # Print a message indicating that the files have been copied to the destination folder
+
 
 def split_and_copy_files(images, annotations, output_folder, test_size=None, random_state=None):
 
@@ -308,13 +310,13 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
     train_images, test_images, train_annotations, test_annotations = train_test_split(
         images, annotations, test_size=test_size, random_state=random_state)
 
-    print(f"Files have been split and copied to {output_folder}")
-
     create_folders(output_folder)
     copy_files(train_images, os.path.join(output_folder, 'train', 'images'))
     copy_files(test_images, os.path.join(output_folder, 'test', 'images'))
     copy_files(train_annotations, os.path.join(output_folder, 'train', 'annotations'))
     copy_files(test_annotations, os.path.join(output_folder, 'test', 'annotations'))
+
+    print(f"Files have been split and copied to {output_folder}")
 
 if __name__ == '__main__':
     output_folder = r'GA_Dataset\Split'
