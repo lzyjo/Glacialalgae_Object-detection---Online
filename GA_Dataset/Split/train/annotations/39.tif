@@ -1,0 +1,50 @@
+<annotation>
+    <folder>s5</folder>
+    <filename>Image 000043 [Published].tif</filename>
+    <path>C:\Users\me20332\OneDrive - University of Bristol\MscR\Annotation Resources\Greenland_Glacier_Algae_Images_2024\Bluff_230724\s5\Image 000043 [Published].tif</path>
+    <source>
+        <database>Unknown</database>
+    </source>
+    <size>
+        <width>2688</width>
+        <height>2200</height>
+        <depth>3</depth>
+    </size>
+    <segmented>0</segmented>
+    <object>
+        <name>AN_2</name>
+        <pose>Unspecified</pose>
+        <truncated>0</truncated>
+        <difficult>0</difficult>
+        <bndbox>
+            <xmin>1101</xmin>
+            <ymin>506</ymin>
+            <xmax>1229</xmax>
+            <ymax>563</ymax>
+        </bndbox>
+    </object>
+    <object>
+        <name>AN_2</name>
+        <pose>Unspecified</pose>
+        <truncated>0</truncated>
+        <difficult>0</difficult>
+        <bndbox>
+            <xmin>1682</xmin>
+            <ymin>833</ymin>
+            <xmax>1790</xmax>
+            <ymax>892</ymax>
+        </bndbox>
+    </object>
+    <object>
+        <name>AN_4</name>
+        <pose>Unspecified</pose>
+        <truncated>0</truncated>
+        <difficult>0</difficult>
+        <bndbox>
+            <xmin>1958</xmin>
+            <ymin>227</ymin>
+            <xmax>2160</xmax>
+            <ymax>302</ymax>
+        </bndbox>
+    </object>
+</annotation>
