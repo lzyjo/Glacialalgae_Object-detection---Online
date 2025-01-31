@@ -314,20 +314,20 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
        os.path.exists(os.path.join(output_folder, 'test', 'images')) and \
        os.path.exists(os.path.join(output_folder, 'train', 'annotations')) and \
        os.path.exists(os.path.join(output_folder, 'test', 'annotations')):
-        print("Train and test lists already exist.")
+        print("Train and test lists already exist. Dataset has been split")
         return
     
     else:
         train_images, test_images, train_annotations, test_annotations = train_test_split(
         images, annotations, test_size=test_size, random_state=random_state)
 
-    create_folders(output_folder)
-    copy_files(train_images, os.path.join(output_folder, 'train', 'images'))
-    copy_files(test_images, os.path.join(output_folder, 'test', 'images'))
-    copy_files(train_annotations, os.path.join(output_folder, 'train', 'annotations'))
-    copy_files(test_annotations, os.path.join(output_folder, 'test', 'annotations'))
+        create_folders(output_folder)
+        copy_files(train_images, os.path.join(output_folder, 'train', 'images'))
+        copy_files(test_images, os.path.join(output_folder, 'test', 'images'))
+        copy_files(train_annotations, os.path.join(output_folder, 'train', 'annotations'))
+        copy_files(test_annotations, os.path.join(output_folder, 'test', 'annotations'))
 
-    print(f"Files have been split and copied to {output_folder}")
+        print(f"Files have been split and copied to {output_folder}")
 
 if __name__ == '__main__':
     output_folder = r'GA_Dataset\Split'
