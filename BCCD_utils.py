@@ -310,7 +310,10 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
     if random_state is None:
         random_state = 42
 
-    if train_images and test_images and train_annotations and test_annotations is not None:
+    if os.path.exists(os.path.join(output_folder, 'train', 'images')) and \
+       os.path.exists(os.path.join(output_folder, 'test', 'images')) and \
+       os.path.exists(os.path.join(output_folder, 'train', 'annotations')) and \
+       os.path.exists(os.path.join(output_folder, 'test', 'annotations')):
         print("Train and test lists already exist.")
         return
     
