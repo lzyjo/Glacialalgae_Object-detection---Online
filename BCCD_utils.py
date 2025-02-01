@@ -391,12 +391,12 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
         train_objects = list()
         n_objects = 0
 
-        train_objects, train_images, n_objects = process_annotations(annotation_path=train_annotation_path, 
-                                                                     image_path=train_image_path, 
-                                                                     image_extension='.tif', 
-                                                                     objects_list=train_objects, 
-                                                                     images_list=train_images, 
-                                                                     n_objects=n_objects)        
+        process_annotations(annotation_path=train_annotation_path, 
+                            image_path=train_image_path, 
+                            image_extension='.tif', 
+                            objects_list=train_objects, 
+                            images_list=train_images, 
+                            n_objects=n_objects)        
 
         # Save to file
         with open(os.path.join(output_folder, 'TRAIN_images.json'), 'w') as j:
@@ -415,7 +415,7 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
         test_objects = list()
         n_objects = 0
 
-        test_objects, test_images, n_objects = process_annotations(annotation_path=test_annotation_path, 
+        process_annotations(annotation_path=test_annotation_path, 
                                                                    image_path=test_image_path, 
                                                                    image_extension='.tif', 
                                                                    objects_list=test_objects, 
