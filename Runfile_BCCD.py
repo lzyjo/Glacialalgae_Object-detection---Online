@@ -28,8 +28,7 @@ from BCCD_utils import create_data_lists
 # Label map
 label_classes_path = os.path.abspath(r"label_classes.csv") # Load label classes from CSV
 label_classes_df = pd.read_csv(label_classes_path) # read csv, and prevent pd from treating first row as a header row
-
-labels = tuple(label_classes_df.iloc[:, 1].tolist())  # Derive labels from the second column of the CSV
+labels = tuple(label_classes_df.iloc[:, 0].tolist())  # Derive labels from the first column of the CSV
 label_map = {k: v + 1 for v, k in enumerate(labels)}
 rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
 
