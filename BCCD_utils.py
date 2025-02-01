@@ -318,7 +318,11 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
         all(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder, 'train', 'images'))) and \
         all(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder, 'test', 'images'))) and \
         all(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder, 'train', 'annotations'))) and \
-        all(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder, 'test', 'annotations'))):
+        all(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder, 'test', 'annotations'))) and \
+        len(os.listdir(os.path.join(output_folder, 'train', 'images'))) > 0 and \
+        len(os.listdir(os.path.join(output_folder, 'test', 'images'))) > 0 and \
+        len(os.listdir(os.path.join(output_folder, 'train', 'annotations'))) > 0 and \
+        len(os.listdir(os.path.join(output_folder, 'test', 'annotations'))) > 0:
 
         print("Train and test lists already exist. Dataset has been split and contains relevant files.")
         return
