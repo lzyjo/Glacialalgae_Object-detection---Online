@@ -57,9 +57,12 @@ split_and_copy_files(images, annotations, output_folder) #create_folders, copy f
 
 
 # Creating datalists for the train, val and test data
-from BCCD_utils import parse_annotation, create_data_lists
-annotation_path = r"GA_Dataset\Annotations"
-output_folder = cwd
+from BCCD_utils import create_data_lists
+create_data_lists(train_annotation_path=r'GA_Dataset/Split/train/annotations',
+                train_image_path=r'GA_Dataset/Split/train/images',
+                test_annotation_path=r'GA_Dataset/Split/test/annotations',
+                test_image_path=r'GA_Dataset/Split/test/images',
+                output_folder=r'GA_Dataset/Output')
 
 # Label map
 # Load labels from a file

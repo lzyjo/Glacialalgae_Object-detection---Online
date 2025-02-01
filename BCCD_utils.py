@@ -376,12 +376,14 @@ def process_annotations(annotation_path, image_path, image_extension, objects_li
 
 
 
-def create_data_lists(annotation_path, output_folder):
+def create_data_lists(train_annotation_path, train_image_path, test_annotation_path, test_image_path, output_folder):
     """
     Create lists of images, the bounding boxes and labels of the objects in these images, and save these to file.
 
-    :param voc07_path: path to the 'VOC2007' folder
-    :param voc12_path: path to the 'VOC2012' folder
+    :param train_annotation_path: path to the training annotations folder
+    :param train_image_path: path to the training images folder
+    :param test_annotation_path: path to the testing annotations folder
+    :param test_image_path: path to the testing images folder
     :param output_folder: folder where the JSONs must be saved
     """
 
@@ -389,7 +391,7 @@ def create_data_lists(annotation_path, output_folder):
         and os.path.exists('TEST_objects.json') \
         and os.path.exists('TRAIN_images.json') \
         and os.path.exists('TRAIN_objects.json') \
-        and os.path.exists('TEST_images.json'):
+        and os.path.exists('label_map.json'):
         print('Datalists already created')
 
     else:
@@ -400,10 +402,12 @@ def create_data_lists(annotation_path, output_folder):
         train_objects = list()
         n_objects = 0
 
-        process_annotations(annotation_path=r'GA_Dataset/Split/train/annotations', 
-                            image_path=r'GA_Dataset/Split/train/images', 
-                            image_extension='.tif', 
-                            objects_list=train_objects, images_list=train_images, n_objects=n_objects)        
+        train_objects, train_images, n_objects = process_annotations(annotation_path=train_annotation_path, 
+                                                                     image_path=train_image_path, 
+                                                                     image_extension='.tif', 
+                                                                     objects_list=train_objects, 
+                                                                     images_list=train_images, 
+                                                                     n_objects=n_objects)        
 
         # Save to file
         with open(os.path.join(output_folder, 'TRAIN_images.json'), 'w') as j:
@@ -422,10 +426,12 @@ def create_data_lists(annotation_path, output_folder):
         test_objects = list()
         n_objects = 0
 
-        process_annotations(annotation_path=r'GA_Dataset/Split/test/annotations', 
-                            image_path=r'GA_Dataset/Split/test/images', 
-                            image_extension='.tif', 
-                            objects_list=test_objects, images_list=test_images, n_objects=n_objects)
+        test_objects, test_images, n_objects = process_annotations(annotation_path=test_annotation_path, 
+                                                                   image_path=test_image_path, 
+                                                                   image_extension='.tif', 
+                                                                   objects_list=test_objects, 
+                                                                   images_list=test_images, 
+                                                                   n_objects=n_objects)
 
         # Save to file
         with open(os.path.join(output_folder, 'TEST_images.json'), 'w') as j:
@@ -435,15 +441,15 @@ def create_data_lists(annotation_path, output_folder):
 
         print('\nThere are %d testing images containing a total of %d objects. Files have been saved to %s.' % (
             len(test_images), n_objects, os.path.abspath(output_folder)))
-          
 
-    if __name__ == '__main__':
-        """Change paths and output folder accordingly to your setup"""
-        create_data_lists(annotation_path=annotation_path,
-                          train_path=train_path,
-                          test_path=test_path,
-                          valid_path=valid_path,
-                          output_folder=cwd)
+
+if __name__ == '__main__':
+    """Change paths and output folder accordingly to your setup"""
+    create_data_lists(train_annotation_path=r'GA_Dataset/Split/train/annotations',
+                      train_image_path=r'GA_Dataset/Split/train/images',
+                      test_annotation_path=r'GA_Dataset/Split/test/annotations',
+                      test_image_path=r'GA_Dataset/Split/test/images',
+                      output_folder=r'GA_Dataset/Output')
         
 
 def decimate(tensor, m):
