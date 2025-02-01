@@ -62,7 +62,7 @@ create_data_lists(train_annotation_path=r'GA_Dataset/Split/train/annotations',
                 train_image_path=r'GA_Dataset/Split/train/images',
                 test_annotation_path=r'GA_Dataset/Split/test/annotations',
                 test_image_path=r'GA_Dataset/Split/test/images',
-                output_folder=r'GA_Dataset/Output')
+                output_folder='./')
 
 # Label map
 # Load labels from a file
