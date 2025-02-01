@@ -289,7 +289,8 @@ def copy_files(files, destination_folder, file_extension):
     """
     
     if os.path.exists(destination_folder) and \
-    any(file.endswith(file_extension) for file in os.listdir(destination_folder)):
+    any(file.endswith(file_extension) for file in os.listdir(destination_folder)) and \
+    len(os.listdir(destination_folder)) > 0:
         print(f"Destination directory already exists and directory already contains {file_extension} files.")
             
     else:
