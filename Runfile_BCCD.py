@@ -9,10 +9,6 @@ import pandas as pd
 cwd = os.getcwd()
 print(f"Current working directory: {cwd}")
 
-# Run the BCCD_utils.py file
-os.system('python BCCD_utils.py')
-
-
 # Dataset prep and set up
 from BCCD_utils import convert_files_to_list, split_and_copy_files
 
