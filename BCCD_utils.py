@@ -416,11 +416,11 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
         n_objects = 0
 
         process_annotations(annotation_path=test_annotation_path, 
-                                                                   image_path=test_image_path, 
-                                                                   image_extension='.tif', 
-                                                                   objects_list=test_objects, 
-                                                                   images_list=test_images, 
-                                                                   n_objects=n_objects)
+                            image_path=test_image_path, 
+                            image_extension='.tif', 
+                            objects_list=test_objects, 
+                            images_list=test_images, 
+                            n_objects=n_objects)
 
         # Save to file
         with open(os.path.join(output_folder, 'TEST_images.json'), 'w') as j:
