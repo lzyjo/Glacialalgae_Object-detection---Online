@@ -280,23 +280,24 @@ def create_folders(output_folder):
         print(f"Folder {test_annotation_folder} already exists.")
         
 
-def copy_files(files, destination_folder):
+def copy_files(files, destination_folder, file_extension):
     """
     Copy files to the destination folder.
     :param files: list of file paths to be copied
     :param destination_folder: folder where the files will be copied
+    :param file_extension: extension of the files to be copied (e.g., '.tif' or '.xml')
     """
     
     if os.path.exists(destination_folder):
         print("Destination directory already exists.")
-        if any(file.endswith('.tif') for file in os.listdir(destination_folder)):
-            print("Destination directory already contains .tif files.")
+        if any(file.endswith(file_extension) for file in os.listdir(destination_folder)):
+            print(f"Destination directory already contains {file_extension} files.")
             
     else:
         if not os.path.exists(destination_folder):
             os.makedirs(destination_folder)
         for index, file in enumerate(files):
-            file_name = f"{index}.tif"  # Derive the file name from an object in a list and append .tif
+            file_name = f"{index}{file_extension}"  # Derive the file name from an object in a list and append the file extension
             dest_file_path = os.path.join(destination_folder, file_name)  # Create the destination file path by joining the destination folder and the file name
             shutil.copy(file, dest_file_path) 
 
@@ -313,8 +314,13 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
     if os.path.exists(os.path.join(output_folder, 'train', 'images')) and \
        os.path.exists(os.path.join(output_folder, 'test', 'images')) and \
        os.path.exists(os.path.join(output_folder, 'train', 'annotations')) and \
-       os.path.exists(os.path.join(output_folder, 'test', 'annotations')):
-        print("Train and test lists already exist. Dataset has been split")
+       os.path.exists(os.path.join(output_folder, 'test', 'annotations')) and \
+        any(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder, 'train', 'images'))) and \
+        any(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder, 'test', 'images'))) and \
+        any(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder, 'train', 'annotations'))) and \
+        any(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder, 'test', 'annotations'))):
+
+        print("Train and test lists already exist. Dataset has been split and contains relevant files.")
         return
     
     else:
@@ -322,10 +328,10 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
         images, annotations, test_size=test_size, random_state=random_state)
 
         create_folders(output_folder)
-        copy_files(train_images, os.path.join(output_folder, 'train', 'images'))
-        copy_files(test_images, os.path.join(output_folder, 'test', 'images'))
-        copy_files(train_annotations, os.path.join(output_folder, 'train', 'annotations'))
-        copy_files(test_annotations, os.path.join(output_folder, 'test', 'annotations'))
+        copy_files(train_images, os.path.join(output_folder, 'train', 'images'), file_extension='.tif')
+        copy_files(test_images, os.path.join(output_folder, 'test', 'images'), file_extension= '.tif')
+        copy_files(train_annotations, os.path.join(output_folder, 'train', 'annotations'), file_extension='.xml')
+        copy_files(test_annotations, os.path.join(output_folder, 'test', 'annotations'),file_extension='.xml')
 
         print(f"Files have been split and copied to {output_folder}")
 
