@@ -21,28 +21,13 @@ valid_path = os.path.abspath(r"BCCD.v3\Original\valid")
 label_classes_path = os.path.abspath(r"label_classes.csv") # Load label classes from CSV
 label_classes_df = pd.read_csv(label_classes_path)
 
-labels = tuple(label_classes_df['label'].tolist()) # Derive labels from the CSV
-label_map = {k: v + 1 for v, k in enumerate(BCCD_labels)}
+labels = tuple(label_classes_df.iloc[:, 1].tolist())  # Derive labels from the second column of the CSV
+label_map = {k: v + 1 for v, k in enumerate(labels)}
 rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
 
 # Color map for bounding boxes of detected objects from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
-distinct_colors = ['#e6194b', '#3cb44b', '#ffe119', '#0082c8']
-label_color_map = {k: distinct_colors[i] for i, k in enumerate(label_map.keys())}
-
-# Define the source and destination directories for annotations
-src_dir = os.path.abspath(r"BCCD.v3\Original")
-dest_dir = os.path.abspath(r"BCCD.v3\Annotations")
-
-# Define the source and destination directories for images
-src_dir = os.path.abspath(r"BCCD.v3\Original")
-dest_dir = os.path.abspath(r"BCCD.v3\Images")
-
-
-# Direct paths to the BCCD dataset and make sure they are absolute
-train_path = os.path.abspath(r"BCCD.v3\Original\train")
-test_path = os.path.abspath(r"BCCD.v3\Original\test")
-valid_path = os.path.abspath(r"BCCD.v3\Original\valid")
-
+#distinct_colors = ['#e6194b', '#3cb44b', '#ffe119', '#0082c8']
+# label_color_map = {k: distinct_colors[i] for i, k in enumerate(label_map.keys())}
 
 
 
