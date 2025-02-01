@@ -171,17 +171,6 @@ def setup_images_for_dataset(src_dir, dest_dir):
 
 
 
-# Label map
-BCCD_labels = ('WBC', 'RBC', 'Platelets')
-label_map = {k: v + 1 for v, k in enumerate(BCCD_labels)}
-label_map['background'] = 0
-rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
-
-# Color map for bounding boxes of detected objects from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
-distinct_colors = ['#e6194b', '#3cb44b', '#ffe119', '#0082c8']
-label_color_map = {k: distinct_colors[i] for i, k in enumerate(label_map.keys())}
-
-
 def parse_annotation(annotation_file): #FILE not path, because path is to folder, and path is to indifidual file
                                         #annotation_file is created in create_data_lists()
 
