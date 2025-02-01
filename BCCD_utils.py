@@ -315,10 +315,10 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
        os.path.exists(os.path.join(output_folder, 'test', 'images')) and \
        os.path.exists(os.path.join(output_folder, 'train', 'annotations')) and \
        os.path.exists(os.path.join(output_folder, 'test', 'annotations')) and \
-        any(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder, 'train', 'images'))) and \
-        any(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder, 'test', 'images'))) and \
-        any(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder, 'train', 'annotations'))) and \
-        any(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder, 'test', 'annotations'))):
+        all(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder, 'train', 'images'))) and \
+        all(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder, 'test', 'images'))) and \
+        all(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder, 'train', 'annotations'))) and \
+        all(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder, 'test', 'annotations'))):
 
         print("Train and test lists already exist. Dataset has been split and contains relevant files.")
         return
