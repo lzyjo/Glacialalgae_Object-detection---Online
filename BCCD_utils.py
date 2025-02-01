@@ -7,6 +7,7 @@ import torch
 import random
 import torchvision.transforms.functional as FT
 from sklearn.model_selection import train_test_split
+import pandas as pd
 
 device = torch.device("cpu")
 
@@ -16,9 +17,12 @@ test_path = os.path.abspath(r"BCCD.v3\Original\test")
 valid_path = os.path.abspath(r"BCCD.v3\Original\valid")
 
 # Label map
-BCCD_labels = ('WBC', 'RBC', 'Platelets')
+
+label_classes_path = os.path.abspath(r"label_classes.csv") # Load label classes from CSV
+label_classes_df = pd.read_csv(label_classes_path)
+
+labels = tuple(label_classes_df['label'].tolist()) # Derive labels from the CSV
 label_map = {k: v + 1 for v, k in enumerate(BCCD_labels)}
-label_map['background'] = 0
 rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
 
 # Color map for bounding boxes of detected objects from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
@@ -145,6 +149,7 @@ def setup_images_for_dataset(src_dir, dest_dir):
     else:
         os.makedirs(dest_dir)
         import shutil
+
         
          # Copy .xml files from train, test, and valid directories to the annotation directory
         for root, dirs, files in os.walk(src_dir):

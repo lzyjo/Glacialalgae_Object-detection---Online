@@ -8,6 +8,8 @@ import os
 cwd = os.getcwd()
 print(f"Current working directory: {cwd}")
 
+# Run the BCCD_utils.py file
+os.system('python BCCD_utils.py')
 
 
 # Dataset prep and set up
