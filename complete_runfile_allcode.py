@@ -8,6 +8,43 @@ import os
 cwd = os.getcwd()
 print(f"Current working directory: {cwd}")
 
+expected_cwd = r"C:\Users\me20332\OneDrive - University of Bristol\MscR\GitHub\Testing_different_datasets"
+if cwd != expected_cwd:
+    print("Current working directory is not the Testing_different_datasets directory")
+    os.chdir(r"C:\Users\me20332\OneDrive - University of Bristol\MscR\GitHub\Testing_different_datasets") # Set the current working directory if needed
+    print("Current working directory has been set to the Testing_different_datasets directory")
+else:
+    print("Current working directory is the Testing_different_datasets directory")
+
+
+# Run the BCCD_utils.py file
+os.system('python BCCD_utils.py')
+
+
+## Check if the data exists and extract it if not
+from BCCD_utils import initialize_bccd_trainvaltest_data
+
+# direct paths to the BCCD dataset and make sure they are absolute
+train_path = os.path.abspath(r"BCCD.v3\Original\train")
+test_path = os.path.abspath(r"BCCD.v3\Original\test")
+valid_path = os.path.abspath(r"BCCD.v3\Original\valid")
+
+
+initialize_bccd_trainvaltest_data(train_path=train_path,
+                                  test_path=test_path,
+                                  valid_path=valid_path)
+
+
+# Structuring of the BCCD dataset (according to VOC) 
+# from BCCD_utils import setup_annotations_for_dataset, setup_images_for_dataset
+
+# src_dir = os.path.abspath(r"BCCD.v3\Original")
+# dest_dir = os.path.abspath(r"BCCD.v3\Annotations")
+# setup_annotations_for_dataset(src_dir= src_dir, dest_dir=dest_dir)
+
+# src_dir = os.path.abspath(r"BCCD.v3\Original")
+# dest_dir = os.path.abspath(r"BCCD.v3\Images")
+# setup_images_for_dataset(src_dir= src_dir, dest_dir=dest_dir)
 
 
 # Dataset prep and set up

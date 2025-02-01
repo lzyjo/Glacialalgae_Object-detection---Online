@@ -288,10 +288,9 @@ def copy_files(files, destination_folder, file_extension):
     :param file_extension: extension of the files to be copied (e.g., '.tif' or '.xml')
     """
     
-    if os.path.exists(destination_folder):
-        print("Destination directory already exists.")
-        if any(file.endswith(file_extension) for file in os.listdir(destination_folder)):
-            print(f"Destination directory already contains {file_extension} files.")
+    if os.path.exists(destination_folder) and \
+    any(file.endswith(file_extension) for file in os.listdir(destination_folder)):
+        print(f"Destination directory already exists and directory already contains {file_extension} files.")
             
     else:
         if not os.path.exists(destination_folder):
