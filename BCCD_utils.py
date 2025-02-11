@@ -171,35 +171,6 @@ def setup_images_for_dataset(src_dir, dest_dir):
 
 
 
-def parse_annotation(annotation_file): #FILE not path, because path is to folder, and path is to indifidual file
-                                        #annotation_file is created in create_data_lists()
-
-    tree = ET.parse(annotation_file)
-    root = tree.getroot()
-
-    boxes = list()
-    labels = list()
-    difficulties = list()
-    for object in root.iter('object'):
-
-        difficult = int(object.find('difficult').text == '1')
-
-        label = object.find('name').text.strip()
-        if label not in label_map:
-            print (f"Label '{label}' not present in label_map")
-            continue
-
-        bbox = object.find('bndbox')
-        xmin = int(bbox.find('xmin').text) - 1
-        ymin = int(bbox.find('ymin').text) - 1
-        xmax = int(bbox.find('xmax').text) - 1
-        ymax = int(bbox.find('ymax').text) - 1
-
-        boxes.append([xmin, ymin, xmax, ymax])
-        labels.append(label_map[label])
-        difficulties.append(difficult)
-
-    return {'boxes': boxes, 'labels': labels, 'difficulties': difficulties}
 
 
 def convert_files_to_list(images_folder, annotations_folder):
@@ -323,45 +294,36 @@ if __name__ == '__main__':
     split_and_copy_files(images, annotations, output_folder)
 
 
+def parse_annotation(annotation_file): #FILE not path, because path is to folder, and path is to indifidual file
+                                        #annotation_file is created in create_data_lists()
 
+    tree = ET.parse(annotation_file)
+    root = tree.getroot()
 
-def process_annotations(annotation_path, image_path, image_extension, objects_list, images_list, n_objects):
-    """
-    Process annotations for a given dataset.
+    boxes = list()
+    labels = list()
+    difficulties = list()
 
-    :param annotation_path: Path to the folder containing annotation files
-    :param image_path: Path to the folder containing image files
-    :param image_extension: Extension of the image files (e.g., '.tif')
-    :param objects_list: List to store parsed objects
-    :param images_list: List to store image file paths
-    :param n_objects: Counter for the number of objects
-    :return: Updated objects_list, images_list, and n_objects
-    """
-    image_files = [file for file in os.listdir(image_path) if file.endswith(image_extension)]
-    ids = [os.path.splitext(file)[0] for file in image_files]
+    for object in root.iter('object'):
 
-    print(f"Found {len(ids)} images.")
+        difficult = int(object.find('difficult').text == '1')
 
-    for id in ids:
-        annotation_file = os.path.join(annotation_path, id + '.xml')
-
-        if not os.path.isfile(annotation_file):
-            print(f"Annotation file {annotation_file} does not exist, skipping.")
+        label = object.find('name').text.strip()
+        if label not in label_map:
+            print (f"Label '{label}' not present in label_map")
             continue
 
-        objects = parse_annotation(annotation_file)
-        if len(objects['boxes']) == 0:
-            print(f"No objects found in {annotation_file}, skipping.")
-            continue
+        bbox = object.find('bndbox')
+        xmin = int(bbox.find('xmin').text) - 1
+        ymin = int(bbox.find('ymin').text) - 1
+        xmax = int(bbox.find('xmax').text) - 1
+        ymax = int(bbox.find('ymax').text) - 1
 
-        n_objects += len(objects['boxes'])
-        objects_list.append(objects)
-        images_list.append(os.path.join(image_path, id + image_extension))
+        boxes.append([xmin, ymin, xmax, ymax])
+        labels.append(label_map[label])
+        difficulties.append(difficult)
 
-        print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
-
-    assert len(objects_list) == len(images_list)
-    return objects_list, images_list, n_objects
+    return {'boxes': boxes, 'labels': labels, 'difficulties': difficulties}
 
 
 
@@ -391,12 +353,34 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
         train_objects = list()
         n_objects = 0
 
-        process_annotations(annotation_path=train_annotation_path, 
-                            image_path=train_image_path, 
-                            image_extension='.tif', 
-                            objects_list=train_objects, 
-                            images_list=train_images, 
-                            n_objects=n_objects)        
+        for path in [train_image_path]:
+
+            # Find IDs of images in training data by listing files in the Images directory
+            image_files = [file for file in os.listdir(train_image_path) if file.endswith('.tif')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.jpg' extension (i.e., it is a JPEG image).
+            ids = [os.path.splitext(file)[0] for file in image_files] # Split the file name into the base name and extension, and take the base name (i.e., the part before '.jpg').
+            
+            print(f"Found {len(ids)} training images.")
+            
+            for id in ids:
+                annotation_file = os.path.join(train_annotation_path, id + '.xml')
+
+                if not os.path.isfile(annotation_file):
+                    print(f"Annotation file {annotation_file} does not exist, skipping.")
+                    continue
+                
+                # Parse annotation's XML file
+                objects = parse_annotation(annotation_file)
+                if len(objects['boxes']) == 0:
+                    print(f"No objects found in {annotation_file}, skipping.")
+                    continue
+                
+                n_objects += len(objects['boxes'])
+                train_objects.append(objects)
+                train_images.append(os.path.join(train_path, id + '.jpg'))
+                
+                print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
+
+                assert len(train_objects) == len(train_images)
 
         # Save to file
         with open(os.path.join(output_folder, 'TRAIN_images.json'), 'w') as j:
@@ -415,12 +399,34 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
         test_objects = list()
         n_objects = 0
 
-        process_annotations(annotation_path=test_annotation_path, 
-                            image_path=test_image_path, 
-                            image_extension='.tif', 
-                            objects_list=test_objects, 
-                            images_list=test_images, 
-                            n_objects=n_objects)
+        for path in [test_image_path]:
+
+            # Find IDs of images in training data by listing files in the Images directory
+            image_files = [file for file in os.listdir(test_image_path) if file.endswith('.tif')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.jpg' extension (i.e., it is a JPEG image).
+            ids = [os.path.splitext(file)[0] for file in image_files] # Split the file name into the base name and extension, and take the base name (i.e., the part before '.jpg').
+            
+            print(f"Found {len(ids)} test images.")
+            
+            for id in ids:
+                annotation_file = os.path.join(test_annotation_path, id + '.xml')
+
+                if not os.path.isfile(annotation_file):
+                    print(f"Annotation file {annotation_file} does not exist, skipping.")
+                    continue
+                
+                # Parse annotation's XML file
+                objects = parse_annotation(annotation_file)
+                if len(objects['boxes']) == 0:
+                    print(f"No objects found in {annotation_file}, skipping.")
+                    continue
+                
+                n_objects += len(objects['boxes'])
+                test_objects.append(objects)
+                test_images.append(os.path.join(test_path, id + '.jpg'))
+                
+                print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
+
+                assert len(test_objects) == len(test_images)
 
         # Save to file
         with open(os.path.join(output_folder, 'TEST_images.json'), 'w') as j:

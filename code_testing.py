@@ -64,16 +64,7 @@ print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
 
 
 assert len(objects_list) == len(images_list)
-return objects_list, images_list, n_object
-
-
-
-
-
-
-
-
-
+# return objects_list, images_list, n_object
 
 
 
