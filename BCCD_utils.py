@@ -11,10 +11,7 @@ import pandas as pd
 
 device = torch.device("cpu")
 
-# Direct paths to the BCCD dataset and make sure they are absolute
-train_path = os.path.abspath(r"BCCD.v3\Original\train")
-test_path = os.path.abspath(r"BCCD.v3\Original\test")
-valid_path = os.path.abspath(r"BCCD.v3\Original\valid")
+
 
 # Label map
 
@@ -28,149 +25,6 @@ rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
 # Color map for bounding boxes of detected objects from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
 #distinct_colors = ['#e6194b', '#3cb44b', '#ffe119', '#0082c8']
 # label_color_map = {k: distinct_colors[i] for i, k in enumerate(label_map.keys())}
-
-
-
-
-
-
-def initialize_bccd_trainvaltest_data(train_path, test_path, valid_path):
-    """Unzips BCCD dataset files if they are not already extracted.
-    :param train_path: Path to the training data folder
-    :param test_path: Path to the testing data folder
-    :param valid_path: Path to the validation data folder"""
-    
-    for path in [train_path, test_path, valid_path]:
-
-        if os.path.exists(path):
-            print("BCCD data already extracted.")
-        
-        else:
-            import zipfile 
-            file_path = path + ".zip"
-
-            print(f"Path {path} does not exist.")
-            
-            with zipfile.ZipFile(file_path, 'r') as zip_ref:  # Open the zip file in read mode ('r')
-                zip_ref.extractall(path=os.getcwd())
-
-            print(f"Data extracted to {path}")
-
-    if __name__ == '__main__':
-        """Change paths and output folder accordingly to your setup"""
-        initialize_bccd_trainvaltest_data(train_path=train_path,
-                                          test_path=test_path,
-                                          valid_path=valid_path)
-    
-
-
-# Define the source and destination directories for annotations
-src_dir = os.path.abspath(r"BCCD.v3\Original")
-dest_dir = os.path.abspath(r"BCCD.v3\Annotations")
-
-def setup_annotations_for_dataset(src_dir, dest_dir):
-    """
-    Copies .xml files from the source directory to the destination directory.
-
-    Parameters:
-    src_dir (str): The source directory containing the .xml files.
-    dest_dir (str): The destination directory where the .xml files will be copied.
-
-    Behavior:
-    - If the destination directory already exists and contains .xml files, it prints a message and does not copy files.
-    - If the destination directory does not exist, it creates the directory and copies all .xml files from the source directory (including subdirectories) to the destination directory.
-    - Prints a message indicating the completion of the file copying process.
-    """
-
-    if os.path.exists(dest_dir):
-        print("Destination directory already exists.")
-        if any(file.endswith('.xml') for file in os.listdir(dest_dir)):
-            print("Destination directory already contains .xml files.")
-            
-    else:
-        os.makedirs(dest_dir)
-        import shutil
-        
-         # Copy .xml files from train, test, and valid directories to the annotation directory
-        for root, dirs, files in os.walk(src_dir):
-            for file_name in files:
-                if file_name.endswith('.xml'):
-                    full_file_name = os.path.join(root, file_name)
-                    if os.path.isfile(full_file_name):
-                        shutil.copy(full_file_name, dest_dir)
-        print(f'Files copied to {dest_dir}')
-    
-    if __name__ == '__main__':
-        """Change paths and output folder accordingly to your setup"""
-        setup_annotations_for_dataset(src_dir= src_dir, dest_dir= dest_dir)
-
-
-
-# Define the source and destination directories for images
-src_dir = os.path.abspath(r"BCCD.v3\Original")
-dest_dir = os.path.abspath(r"BCCD.v3\Images")
-
-def setup_images_for_dataset(src_dir, dest_dir):
-    """
-    Copies .jpg files from the source directory to the destination directory.
-    This function checks if the destination directory exists. If it does, it checks if the directory
-    already contains .jpg files and prints a message accordingly. If the destination directory does not
-    exist, it creates the directory and copies all .jpg files from the source directory (including its
-    subdirectories) to the destination directory.
-
-    Args:
-        src_dir (str): The source directory containing the .jpg files.
-        dest_dir (str): The destination directory where the .jpg files will be copied.
-
-    Returns:
-        None
-    """
-
-    if os.path.exists(dest_dir):
-        print("Destination directory already exists.")
-        if any(file.endswith('.jpg') for file in os.listdir(dest_dir)):
-            print("Destination directory already contains .jpg files.")
-            
-    else:
-        os.makedirs(dest_dir)
-        import shutil
-
-        
-         # Copy .xml files from train, test, and valid directories to the annotation directory
-        for root, dirs, files in os.walk(src_dir):
-            for file_name in files:
-                if file_name.endswith('.jpg'):
-                    full_file_name = os.path.join(root, file_name)
-                    if os.path.isfile(full_file_name):
-                        shutil.copy(full_file_name, dest_dir)
-        print(f'Files copied to {dest_dir}')
-    
-    if __name__ == '__main__':
-        """Change paths and output folder accordingly to your setup"""
-        setup_annotations_for_dataset(src_dir= src_dir, dest_dir= dest_dir)
-
-
-
-
-# Define layout of the BCCD dataset
-
-
-# def setup_layout_for_dataset():
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def convert_files_to_list(images_folder, annotations_folder):
@@ -197,6 +51,7 @@ def convert_files_to_list(images_folder, annotations_folder):
 if __name__ == '__main__':
     """Change paths and output folder accordingly to your setup"""
     images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations')
+
 
 
 def create_folders(output_folder):
@@ -292,6 +147,9 @@ def split_and_copy_files(images, annotations, output_folder, test_size=None, ran
 if __name__ == '__main__':
     output_folder = r'GA_Dataset\Split'
     split_and_copy_files(images, annotations, output_folder)
+
+
+
 
 
 def parse_annotation(annotation_file): #FILE not path, because path is to folder, and path is to indifidual file
