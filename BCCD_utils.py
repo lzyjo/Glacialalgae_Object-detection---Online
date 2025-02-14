@@ -11,17 +11,6 @@ import pandas as pd
 
 device = torch.device("cpu")
 
-
-
-# Label map
-
-label_classes_path = os.path.abspath(r"label_classes.csv") # Load label classes from CSV
-label_classes_df = pd.read_csv(label_classes_path)
-
-labels = tuple(label_classes_df.iloc[1].tolist())  # Derive labels from the second column of the CSV
-label_map = {k: v + 1 for v, k in enumerate(labels)}
-rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
-
 # Color map for bounding boxes of detected objects from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
 #distinct_colors = ['#e6194b', '#3cb44b', '#ffe119', '#0082c8']
 # label_color_map = {k: distinct_colors[i] for i, k in enumerate(label_map.keys())}
@@ -152,7 +141,7 @@ if __name__ == '__main__':
 
 
 
-def parse_annotation(annotation_file): #FILE not path, because path is to folder, and path is to indifidual file
+def parse_annotation(annotation_file, label_map): #FILE not path, because path is to folder, and path is to indifidual file
                                         #annotation_file is created in create_data_lists()
 
     tree = ET.parse(annotation_file)
@@ -185,7 +174,7 @@ def parse_annotation(annotation_file): #FILE not path, because path is to folder
 
 
 
-def create_data_lists(train_annotation_path, train_image_path, test_annotation_path, test_image_path, output_folder):
+def create_data_lists(train_annotation_path, train_image_path, test_annotation_path, test_image_path, label_map, output_folder):
     """
     Create lists of images, the bounding boxes and labels of the objects in these images, and save these to file.
 
@@ -204,7 +193,7 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
         print('Datalists already created')
 
     else:
-    
+
         # Training data
 
         train_images = list()
@@ -227,14 +216,14 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
                     continue
                 
                 # Parse annotation's XML file
-                objects = parse_annotation(annotation_file)
+                objects = parse_annotation(annotation_file, label_map)
                 if len(objects['boxes']) == 0:
                     print(f"No objects found in {annotation_file}, skipping.")
                     continue
                 
                 n_objects += len(objects['boxes'])
                 train_objects.append(objects)
-                train_images.append(os.path.join(train_path, id + '.jpg'))
+                train_images.append(os.path.join(train_image_path, id + '.jpg'))
                 
                 print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
 
@@ -273,14 +262,14 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
                     continue
                 
                 # Parse annotation's XML file
-                objects = parse_annotation(annotation_file)
+                objects = parse_annotation(annotation_file, label_map)
                 if len(objects['boxes']) == 0:
                     print(f"No objects found in {annotation_file}, skipping.")
                     continue
                 
                 n_objects += len(objects['boxes'])
                 test_objects.append(objects)
-                test_images.append(os.path.join(test_path, id + '.jpg'))
+                test_images.append(os.path.join(test_image_path, id + '.jpg'))
                 
                 print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
 
