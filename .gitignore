@@ -1,6 +1,11 @@
 
 # All data files
-.xml
-.tif
+*.xml
+*.tif
+*.json 
+GA_Dataset/
 
-.pyc #pycache
+# Ignore cache files
+*.pyc #pycache
+
+#
