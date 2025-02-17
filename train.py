@@ -166,22 +166,5 @@ def train(train_loader, model, criterion, optimizer, epoch, epochs):
     return losses.avg
 
 
-def save_checkpoint(epoch, model, optimizer):
-    """
-    Save model checkpoint.
-
-    :param epoch: current epoch number
-    :param model: model
-    :param optimizer: optimizer
-    """
-    state = {
-        'epoch': epoch,
-        'model': model,
-        'optimizer': optimizer
-    }
-    filename = f'checkpoint_{epoch}.pth.tar'
-    torch.save(state, filename)
-
-
 if __name__ == '__main__':
     main()
