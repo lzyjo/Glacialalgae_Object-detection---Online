@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.ticker import NullLocator
 from PIL import Image
-from BCCD_utils import *
+from utils import *
 
 device = torch.device("cpu")
 

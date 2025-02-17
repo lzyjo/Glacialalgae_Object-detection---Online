@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 import json
 import os
 from PIL import Image
-from BCCD_utils import transform
+from utils import transform
 
 
 class GA_Dataset(Dataset):

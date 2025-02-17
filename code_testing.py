@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 
 
-from BCCD_utils import parse_annotation
+from utils import parse_annotation
 
 
 label_classes_path = os.path.abspath(r"label_classes.csv") # Load label classes from CSV

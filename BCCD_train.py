@@ -5,7 +5,7 @@ import torch.utils.data
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from BCCD_model import SSD300, MultiBoxLoss
-from BCCD_utils import *
+from utils import *
 from BCCD_dataset import BCCDDataset
 
 # Data parameters

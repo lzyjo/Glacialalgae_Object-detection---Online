@@ -22,7 +22,7 @@ os.system('python BCCD_utils.py')
 
 
 ## Check if the data exists and extract it if not
-from BCCD_utils import initialize_bccd_trainvaltest_data
+from utils import initialize_bccd_trainvaltest_data
 
 # direct paths to the BCCD dataset and make sure they are absolute
 train_path = os.path.abspath(r"BCCD.v3\Original\train")
@@ -48,7 +48,7 @@ initialize_bccd_trainvaltest_data(train_path=train_path,
 
 
 # Dataset prep and set up
-from BCCD_utils import convert_files_to_list, split_and_copy_files
+from utils import convert_files_to_list, split_and_copy_files
 
 # Split the dataset into train, test and validation sets
 images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations') # Convert to list 
@@ -57,7 +57,7 @@ split_and_copy_files(images, annotations, output_folder) #create_folders, copy f
 
 
 # Creating datalists for the train, val and test data
-from BCCD_utils import create_data_lists
+from utils import create_data_lists
 create_data_lists(train_annotation_path=r'GA_Dataset/Split/train/annotations',
                 train_image_path=r'GA_Dataset/Split/train/images',
                 test_annotation_path=r'GA_Dataset/Split/test/annotations',

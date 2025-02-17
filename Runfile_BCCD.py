@@ -10,7 +10,7 @@ cwd = os.getcwd()
 print(f"Current working directory: {cwd}")
 
 # Dataset prep and set up
-from BCCD_utils import convert_files_to_list, split_and_copy_files
+from utils import convert_files_to_list, split_and_copy_files
 
 # Split the dataset into train, test and validation sets
 images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\Images', annotations_folder=r'GA_Dataset\Annotations') # Convert to list 
@@ -19,9 +19,9 @@ split_and_copy_files(images, annotations, output_folder) #create_folders, copy f
 
 
 # Creating datalists for the train, val and test data
-from BCCD_utils import create_data_lists
+from utils import create_data_lists
 
-# Label map
+# Label map (explicitly defined)
 label_classes_path = os.path.abspath(r"label_classes.csv") # Load label classes from CSV
 label_classes_df = pd.read_csv(label_classes_path) # read csv
 label_classes = tuple(label_classes_df.iloc[:, 0].tolist())  # Derive labels from the first column of the CSV
@@ -34,26 +34,6 @@ create_data_lists(train_annotation_path=r'GA_Dataset/Split/train/annotations',
                 test_image_path=r'GA_Dataset/Split/test/images',
                 label_map=label_map,
                 output_folder='./')
-
-# Label map
-# Load labels from a file
-import csv
-with open('Label classes.csv', 'r') as f:
-    reader = csv.reader(f)
-    Labels = tuple(row[0] for row in reader)
-label_map = {k: v + 1 for v, k in enumerate(Labels)}
-# label_map['background'] = 0
-rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
-
-# Color map for bounding boxes of detected objects from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
-distinct_colors = ['#e6194b', '#3cb44b', '#ffe119', '#0082c8']
-label_color_map = {k: distinct_colors[i] for i, k in enumerate(label_map.keys())}
-
-create_data_lists(annotation_path=r"GA_Dataset\Annotations",
-                  train_path=train_path,
-                  test_path=test_path,
-                  valid_path=valid_path,
-                  output_folder=cwd)
 
 
 # Check if model is already trained and present 

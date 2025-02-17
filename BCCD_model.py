@@ -1,5 +1,5 @@
 from torch import nn
-from BCCD_utils import *
+from utils import *
 import torch.nn.functional as F
 from math import sqrt
 from itertools import product as product
