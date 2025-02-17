@@ -44,10 +44,9 @@ else:
 
 
 # Training the model
-from dataset import BCCDDataset
+os.system('python train.py') #parameters for the model (and training it) are at the beginning of the file
+                                #check or modify them should you need to
 
-data_folder = './'  # folder with data files
-os.system('python BCCD_train.py')
 
 # Evaluate the model
 

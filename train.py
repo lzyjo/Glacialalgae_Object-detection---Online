@@ -6,7 +6,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from BCCD_model import SSD300, MultiBoxLoss
 from utils import *
-from dataset import BCCDDataset
+from dataset import GA_Dataset
+from label_map import label_map
 
 # Data parameters
 data_folder = './'  # folder with data files
@@ -18,8 +19,8 @@ device = torch.device("cpu")
 
 # Learning parameters
 checkpoint = None  # path to model checkpoint, None if none
-batch_size = 8  # batch size
-iterations = 120000  # number of iterations to train
+batch_size = 8  # batch size (CHANGE ACCORDINGLY)
+iterations = 120000  # number of iterations to train (CHANGE ACCORDINGLY)
 workers = 4  # number of workers for loading data in the DataLoader
 print_freq = 200  # print training status every __ batches
 lr = 1e-3  # learning rate
@@ -28,6 +29,7 @@ decay_lr_to = 0.1  # decay learning rate to this fraction of the existing learni
 momentum = 0.9  # momentum
 weight_decay = 5e-4  # weight decay
 grad_clip = None  # clip if gradients are exploding, which may happen at larger batch sizes (sometimes at 32) - you will recognize it by a sorting error in the MuliBox loss calculation
+checkpoint_freq = 500  # save checkpoint every __ iterations (CHANGE ACCORDINGLY)
 
 cudnn.benchmark = True
 
@@ -65,7 +67,7 @@ def main():
     criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy).to(device)
 
     # Custom dataloaders
-    train_dataset = BCCDDataset(data_folder,
+    train_dataset = GA_Dataset(data_folder,
                                 split='train',
                                 keep_difficult=False)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
@@ -90,13 +92,14 @@ def main():
               model=model,
               criterion=criterion,
               optimizer=optimizer,
-              epoch=epoch)
+              epoch=epoch,
+              epochs=epochs)
 
         # Save checkpoint
         save_checkpoint(epoch, model, optimizer)
 
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, epochs):
     """
     One epoch's training.
 
@@ -153,9 +156,31 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(epoch, i, len(train_loader),
                                                                   batch_time=batch_time,
                                                                   data_time=data_time, loss=losses))
+
+        # Save checkpoint
+        if i % checkpoint_freq == 0:
+            save_checkpoint(epoch, model, optimizer)
+
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
 
     return losses.avg
+
+
+def save_checkpoint(epoch, model, optimizer):
+    """
+    Save model checkpoint.
+
+    :param epoch: current epoch number
+    :param model: model
+    :param optimizer: optimizer
+    """
+    state = {
+        'epoch': epoch,
+        'model': model,
+        'optimizer': optimizer
+    }
+    filename = f'checkpoint_{epoch}.pth.tar'
+    torch.save(state, filename)
 
 
 if __name__ == '__main__':

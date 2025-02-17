@@ -203,8 +203,8 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
         for path in [train_image_path]:
 
             # Find IDs of images in training data by listing files in the Images directory
-            image_files = [file for file in os.listdir(train_image_path) if file.endswith('.tif')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.jpg' extension (i.e., it is a JPEG image).
-            ids = [os.path.splitext(file)[0] for file in image_files] # Split the file name into the base name and extension, and take the base name (i.e., the part before '.jpg').
+            image_files = [file for file in os.listdir(train_image_path) if file.endswith('.tif')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.tif' extension (i.e., it is a JPEG image).
+            ids = [os.path.splitext(file)[0] for file in image_files] # Split the file name into the base name and extension, and take the base name (i.e., the part before '.tif').
             
             print(f"Found {len(ids)} training images.")
             
@@ -223,7 +223,7 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
                 
                 n_objects += len(objects['boxes'])
                 train_objects.append(objects)
-                train_images.append(os.path.join(train_image_path, id + '.jpg'))
+                train_images.append(os.path.join(train_image_path, id + '.tif'))
                 
                 print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
 
@@ -249,8 +249,8 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
         for path in [test_image_path]:
 
             # Find IDs of images in training data by listing files in the Images directory
-            image_files = [file for file in os.listdir(test_image_path) if file.endswith('.tif')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.jpg' extension (i.e., it is a JPEG image).
-            ids = [os.path.splitext(file)[0] for file in image_files] # Split the file name into the base name and extension, and take the base name (i.e., the part before '.jpg').
+            image_files = [file for file in os.listdir(test_image_path) if file.endswith('.tif')] # Iterate over each file in the 'Images' directory. # Check if the file has a '.tif' extension (i.e., it is a JPEG image).
+            ids = [os.path.splitext(file)[0] for file in image_files] # Split the file name into the base name and extension, and take the base name (i.e., the part before '.tif').
             
             print(f"Found {len(ids)} test images.")
             
@@ -269,7 +269,7 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
                 
                 n_objects += len(objects['boxes'])
                 test_objects.append(objects)
-                test_images.append(os.path.join(test_image_path, id + '.jpg'))
+                test_images.append(os.path.join(test_image_path, id + '.tif'))
                 
                 print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
 
