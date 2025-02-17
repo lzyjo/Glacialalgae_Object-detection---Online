@@ -6,7 +6,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from BCCD_model import SSD300, MultiBoxLoss
 from utils import *
-from BCCD_dataset import BCCDDataset
+from dataset import BCCDDataset
 
 # Data parameters
 data_folder = './'  # folder with data files

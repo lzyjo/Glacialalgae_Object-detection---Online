@@ -1,5 +1,5 @@
 from torchvision import transforms
-from BCCD_dataset import *
+from dataset import *
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches

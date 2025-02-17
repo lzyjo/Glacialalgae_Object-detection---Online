@@ -1,5 +1,5 @@
 from utils import *
-from BCCD_dataset import BCCDDataset
+from dataset import BCCDDataset
 from tqdm import tqdm
 from pprint import PrettyPrinter
 

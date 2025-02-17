@@ -44,7 +44,7 @@ else:
 
 
 # Training the model
-from BCCD_dataset import BCCDDataset
+from dataset import BCCDDataset
 
 data_folder = './'  # folder with data files
 os.system('python BCCD_train.py')
