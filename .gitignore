@@ -8,3 +8,8 @@ GA_Dataset/
 # Ignore cache files
 *.pyc #pycache
 __pycache__
+
+#ignore checkpoints
+*.tar
+Checkpoints/
+*.pth
