@@ -6,11 +6,30 @@ import matplotlib.patches as patches
 from matplotlib.ticker import NullLocator
 from PIL import Image
 from utils import *
+import argparse
+import numpy as np
+from label_map import *
 
 device = torch.device("cpu")
+label_color_map = {label: color for label, color in zip(label_map.keys(), plt.cm.hsv(np.linspace(0, 1, len(label_map))))}
+
+
+# Parsing command-line arguments
+parser = argparse.ArgumentParser(description='Detection')
+
+## checkpoint argument
+parser.add_argument('--checkpoint', required=True, type=str, help='date of the dataset used for training')
+
+### img_path argument   
+parser.add_argument('--img_path', required=True, type=str, help='path to the image')
+
+# Parse arguments
+args = parser.parse_args()
+
 
 # Load model checkpoint
-checkpoint = r'checkpoint_ssd300.pth.tar'
+checkpoint = args.checkpoint
+img_path = args.img_path
 checkpoint = torch.load(checkpoint, map_location=torch.device('cpu'))
 start_epoch = checkpoint['epoch'] + 1
 print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
@@ -94,7 +113,7 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None):
 
 
 if __name__ == '__main__':
-    img_path = 'BCCD.v3\Images\BloodImage_00000_jpg.rf.3aa7a653c80726cbb25447cb697ad7a4.jpg'
+    img_path = img_path
     original_image = Image.open(img_path, mode='r')
     original_image = original_image.convert('RGB')
     detect(original_image, min_score=0.2, max_overlap=0.5, top_k=200)

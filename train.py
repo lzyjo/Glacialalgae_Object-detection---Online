@@ -7,11 +7,32 @@ import matplotlib.pyplot as plt
 from BCCD_model import SSD300, MultiBoxLoss
 from utils import *
 from dataset import GA_Dataset
-from label_map import label_map
+from label_map import *
+import argparse
+
+# Parsing command-line arguments
+parser = argparse.ArgumentParser(description='Model training')
+
+## data_folder argument
+parser.add_argument('--data_folder', default=r'JSON_folder', type=str, help='folder with data files')
+
+## date_of_dataset_used argument
+parser.add_argument('--date_of_dataset_used', required=True, type=str, help='date of the dataset used for training')
+
+## save_dir argument
+parser.add_argument('--save_dir', default=r'Checkpoints', type=str, help='folder to save checkpoints')
+
+# Parse arguments
+args = parser.parse_args()
+
+
 
 # Data parameters
-data_folder = './'  # folder with data files
+data_folder = args.data_folder
+date_of_dataset_used = args.date_of_dataset_used
+save_dir = args.save_dir
 keep_difficult = True  # use objects considered difficult to detect?
+
 
 # Model parameters
 n_classes = len(label_map)  # number of different types of objects
@@ -29,7 +50,7 @@ decay_lr_to = 0.1  # decay learning rate to this fraction of the existing learni
 momentum = 0.9  # momentum
 weight_decay = 5e-4  # weight decay
 grad_clip = None  # clip if gradients are exploding, which may happen at larger batch sizes (sometimes at 32) - you will recognize it by a sorting error in the MuliBox loss calculation
-checkpoint_freq = 500  # save checkpoint every __ iterations (CHANGE ACCORDINGLY)
+checkpoint_freq = 1200  # save checkpoint every __ iterations (CHANGE ACCORDINGLY)
 
 cudnn.benchmark = True
 
@@ -96,7 +117,7 @@ def main():
               epochs=epochs)
 
         # Save checkpoint
-        save_checkpoint(epoch, model, optimizer)
+        save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir)
 
 
 def train(train_loader, model, criterion, optimizer, epoch, epochs):
@@ -159,7 +180,7 @@ def train(train_loader, model, criterion, optimizer, epoch, epochs):
 
         # Save checkpoint
         if i % checkpoint_freq == 0:
-            save_checkpoint(epoch, model, optimizer)
+            save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir)
 
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
 

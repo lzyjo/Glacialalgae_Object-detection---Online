@@ -1,18 +1,34 @@
 from utils import *
-from dataset import BCCDDataset
+from dataset import GA_Dataset
+import argparse
 from tqdm import tqdm
 from pprint import PrettyPrinter
 
 # Good formatting when printing the APs for each class and mAP
 pp = PrettyPrinter()
 
+
+
+# Parsing command-line arguments
+parser = argparse.ArgumentParser(description='Model evaluation')
+
+## data_folder argument
+parser.add_argument('--data_folder', default=r'r', type=str, help='folder with data files')
+
+# checkpoint argument
+parser.add_argument('--checkpoint', default=r'Checkpoints/20250219_checkpoint_3.pth.tar', type=str, help='path to model checkpoint')
+
+# Parse arguments
+args = parser.parse_args()
+
+
 # Parameters
-data_folder = './'
+data_folder = args.data_folder
 keep_difficult = True  # difficult ground truth objects must always be considered in mAP calculation, because these objects DO exist!
 batch_size = 64
 workers = 4
 device = torch.device("cpu")
-checkpoint = r'checkpoint_ssd300.pth.tar'
+checkpoint = args.checkpoint
 
 # Load model checkpoint that is to be evaluated
 checkpoint = torch.load(checkpoint, map_location=torch.device('cpu'))
@@ -23,7 +39,7 @@ model = model.to(device)
 model.eval()
 
 # Load test data
-test_dataset = BCCDDataset(data_folder,
+test_dataset = GA_Dataset(data_folder,
                                 split='test',
                                 keep_difficult=keep_difficult)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,

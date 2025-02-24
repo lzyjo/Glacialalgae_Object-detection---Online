@@ -1,99 +1,33 @@
-"""
-Test if create_data_lists(train_annotation_path, train_image_path, test_annotation_path, test_image_path, output_folder) function is working
-Problem found in parse_annotations 
-"""
-
-
-
-import os      
-import json
-import pandas as pd
 import os
-import zipfile
-import shutil
-import json
-import xml.etree.ElementTree as ET
-import torch
-import random
-import torchvision.transforms.functional as FT
-from sklearn.model_selection import train_test_split
-import pandas as pd
-
-
-from utils import parse_annotation
-
-
-label_classes_path = os.path.abspath(r"label_classes.csv") # Load label classes from CSV
-label_classes_df = pd.read_csv(label_classes_path) # read csv
-label_classes = tuple(label_classes_df.iloc[:, 0].tolist())  # Derive labels from the first column of the CSV
-label_map = {k: v + 1 for v, k in enumerate(label_classes)}
-rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
-
-
-image_path= r'GA_Dataset/Split/train/images'
-image_extension='.tif'
-annotation_path=r'GA_Dataset/Split/train/annotations'
-
-
-train_images = list()
-train_objects = list()
-n_objects = 0
-
-
-image_files = [file for file in os.listdir(image_path) if file.endswith(image_extension)]
-ids = [os.path.splitext(file)[0] for file in image_files]
-
-print(f"Found {len(ids)} images.")
-
-annotation_file = os.path.join(annotation_path, '1' + '.xml')
-
-if not os.path.isfile(annotation_file):
-    print(f"Annotation file {annotation_file} does not exist, skipping.")
-
-
-objects = parse_annotation(annotation_file) # problem here 
-
-if len(objects['boxes']) == 0:
-    print(f"No objects found in {annotation_file}, skipping.")
-
-n_objects += len(objects['boxes'])
-objects_list.append(objects)
-images_list.append(os.path.join(image_path, id + image_extension))
-
-print(f"Processed {annotation_file}, found {len(objects['boxes'])} objects.")
-
-
-assert len(objects_list) == len(images_list)
-# return objects_list, images_list, n_object
 
 
 
-tree = ET.parse(annotation_file)
-root = tree.getroot()
 
-boxes = list()
-labels = list()
-difficulties = list()
+# Define the paths
+annotations_folder = r'Completed annotations/Bluff_230724'
+images_folder = r'Completed annotations/Bluff_230724/Original_Images_Unlabelled_Bluff_230724'
 
-for obj in root.iter('object'):
+# Get the list of .xml files in the annotations folder including subfolders
+xml_files = []
+for root, dirs, files in os.walk(annotations_folder):
+    for file in files:
+        if file.endswith('.xml'):
+            xml_files.append(file)
+xml_files_no_ext = [os.path.splitext(file)[0] for file in xml_files]
 
-    difficult = int(obj.find('difficult').text == '1')
+# Get the list of .tif files in the images folder including subfolders
+tif_files = []
+for root, dirs, files in os.walk(images_folder):
+    for file in files:
+        if file.endswith('.tif'):
+            tif_files.append(file)
+tif_files_no_ext = [os.path.splitext(file)[0] for file in tif_files]
 
-    label = obj.find('name').text.strip()
-    if label not in label_map:
-        print (f"Label '{label}' not present in label_map") # when running this length of code, this line is not printed.. 
-                                                            # but when running as pase annotation function() it is returned?
-        continue
+# Find unmatched files
+unmatched_annotations = set(xml_files_no_ext) - set(tif_files_no_ext)
+unmatched_images = set(tif_files_no_ext) - set(xml_files_no_ext)
 
-    bbox = obj.find('bndbox')
-    xmin = int(bbox.find('xmin').text) - 1
-    ymin = int(bbox.find('ymin').text) - 1
-    xmax = int(bbox.find('xmax').text) - 1
-    ymax = int(bbox.find('ymax').text) - 1
-
-    boxes.append([xmin, ymin, xmax, ymax])
-    labels.append(label_map[label])
-    difficulties.append(difficult)
-
-print({'boxes': boxes, 'labels': labels, 'difficulties': difficulties})
-
+# Print the results
+print("The files in the annotations and images folders do not match.")
+print("Unmatched annotation files:", unmatched_annotations)
+print("Unmatched image files:", unmatched_images)

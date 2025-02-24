@@ -4,6 +4,8 @@
 *.tif
 *.json 
 GA_Dataset/
+Completed annotations/
+JSON_folder/
 
 # Ignore cache files
 *.pyc #pycache

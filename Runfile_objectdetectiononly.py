@@ -30,32 +30,49 @@ extract_files(date_of_dataset_used= 'PAM_Surf_220724', # Change this to the corr
                 annotations_src_folder=r'Completed annotations\PAM_Surf_220724') # Change this to your source folder path
 
 
+# Convert all label classes to 'cell'
+from objectdetector_utils import convert_labels_to_cell
+convert_labels_to_cell(annotations_folder= r'GA_Dataset\20250221_objectdetector\Annotations')
+
 
 # Split the dataset into train, test and validation sets
 from utils import convert_files_to_list, split_and_copy_files
-images, annotations = convert_files_to_list(images_folder=r'GA_Dataset/20250221/Images', 
-                                            annotations_folder=r'GA_Dataset\20250221\Annotations') # Convert to list 
+images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\20250221_objectdetector\Images', 
+                                            annotations_folder=r'GA_Dataset\20250221_objectdetector\Annotations') # Convert to list 
 
 split_and_copy_files(images, annotations, #create_folders, copy files, then split into test and train
-                     output_folder=r'GA_Dataset\20250221\Split') #output folder
+                     output_folder=r'GA_Dataset\20250221_objectdetector\Split') #output folder
+
+
+
+
+
 
 
 # Creating datalists for the train, val and test data
 from utils import create_data_lists
-from label_map import label_map # Label map (explicitly defined)
 import shutil
+import json
+import os
+import pandas as pd
 
-create_data_lists(train_annotation_path=r'GA_Dataset\20250221\Split\train\annotations',
-                train_image_path=r'GA_Dataset\20250221\Split\train\images',
-                test_annotation_path=r'GA_Dataset\20250221\Split\test\annotations',
-                test_image_path=r'GA_Dataset\20250221\Split\test\images',
-                label_map=label_map,
-                date_of_dataset_used='20250221',
+label_classes = ('cell', 'UNKNOWN')  # Define label classes directly
+label_map_objectdetector = {k: v + 1 for v, k in enumerate(label_classes)}
+label_map_objectdetector['background'] = 0  # Background is the first class
+rev_label_map_objectdetector = {v: k for k, v in label_map_objectdetector.items()}  # Inverse mapping
+
+
+create_data_lists(train_annotation_path=r'GA_Dataset\20250221_objectdetector\Split\train\annotations',
+                train_image_path=r'GA_Dataset\20250221_objectdetector\Split\train\images',
+                test_annotation_path=r'GA_Dataset\20250221_objectdetector\Split\test\annotations',
+                test_image_path=r'GA_Dataset\20250221_objectdetector\Split\test\images',
+                label_map=label_map_objectdetector,
+                date_of_dataset_used='20250221_objectdetector',
                 JSON_folder=r'JSON_folder')
 
 
 # Check if model is already trained and present 
-date_of_dataset_used = '20250221'
+date_of_dataset_used = '20250221_objectdetector'
 model_path = os.path.join(date_of_dataset_used + '_checkpoint_ssd300.pth')
 
 if os.path.exists(model_path):
@@ -71,9 +88,8 @@ import warnings
 warnings.filterwarnings("ignore")
 
 subprocess.run(['python', 'train.py', 
-                '--data_folder', r'JSON_folder\20250221',
-                '--date_of_dataset_used', '20250221',
-                '--save_dir', r'Checkpoints'])
+                '--data_folder', r'JSON_folder\20250221_objectdetector',
+                '--date_of_dataset_used', '20250221_objectdetector',])
 
 
 # Evaluate the model and save the results to a .txt file

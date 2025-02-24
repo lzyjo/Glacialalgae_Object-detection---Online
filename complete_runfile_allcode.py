@@ -113,6 +113,6 @@ os.system('python BCCD_eval.py')
 
 os.system('python BCCD_detect.py')
 
-import BCCD_detect # want to be able to directly use the detect function and change the file 
+import detect # want to be able to directly use the detect function and change the file 
 # directly to use the cnn to annotate the test images  
 
