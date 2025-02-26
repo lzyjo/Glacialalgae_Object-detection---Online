@@ -49,7 +49,6 @@ if __name__ == '__main__':
     create_dataset_folder()
 
 def extract_files(date_of_dataset_used, annotations_folder, images_folder, annotations_src_folder, images_src_folder):   # Define source, annotations, and images folders
-def extract_files(date_of_dataset_used, annotations_folder, images_folder, annotations_src_folder, images_src_folder):
     """
     Extracts .xml and .tif files from source folders to specified destination folders, ensuring unique filenames.
     Parameters:
@@ -992,6 +991,53 @@ def accuracy(scores, targets, k):
     return correct_total.item() * (100.0 / batch_size)
 
 
+def manage_training_output_file(results_folder, date_of_dataset_used, checkpoint_frequency, lr, iterations):
+    """
+    This function manages the training output file by creating or appending to it, and writes the training parameters at the top of the file if they do not already exist.
+
+    Args:
+        results_folder (str): The folder where the results will be stored.
+        date_of_dataset_used (str): The date of the dataset used for training.
+        checkpoint_frequency (int): The frequency of checkpoints during training.
+        lr (float): The learning rate for training.
+        iterations (int): The number of iterations for training.
+
+    Returns:
+        str: The path to the training output file.
+    """
+
+    training_output_file = os.path.join(results_folder, 
+                                        f'training_results_{date_of_dataset_used}.txt')
+    
+    if os.path.exists(training_output_file):
+        with open(training_output_file, 'r') as read_file:
+            content = read_file.read()
+        mode = 'a'  # Append mode
+    else:
+        os.makedirs(results_folder, exist_ok=True)  # Ensure the results folder exists
+        content = ''
+        mode = 'w'  # Write mode
+        
+    with open(training_output_file, mode) as f:
+        # Write the training parameters at the top of the file if they do not already exist
+        if mode == 'a':
+            if f'Checkpoint Frequency: {checkpoint_frequency}' not in content:
+                f.write(f'Checkpoint Frequency: {checkpoint_frequency}\n')
+            if f'Date of Dataset Used: {date_of_dataset_used}' not in content:
+                f.write(f'Date of Dataset Used: {date_of_dataset_used}\n')
+            if f'Learning Rate: {lr}' not in content:
+                f.write(f'Learning Rate: {lr}\n')
+            if f'Iterations: {iterations}' not in content:
+                f.write(f'Iterations: {iterations}\n\n')
+            
+        if mode == 'w':    
+            f.write(f'Checkpoint Frequency: {checkpoint_frequency}\n')
+            f.write(f'Date of Dataset Used: {date_of_dataset_used}\n')
+            f.write(f'Learning Rate: {lr}\n')
+
+    return training_output_file
+
+
 def save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir):
     """
     Save model checkpoint.
@@ -1005,7 +1051,62 @@ def save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir):
              'model': model,
              'optimizer': optimizer}
     filename = os.path.join(save_dir, f'{date_of_dataset_used}_checkpoint_{epoch}.pth.tar')
+    
     torch.save(state, filename)
+
+
+def keep_checkpoints(checkpoint_dir, log_file, date_of_dataset_used):
+    """
+    Keeps only the checkpoints corresponding to the last epoch and the epoch with the lowest loss.
+    Args:
+        checkpoint_dir (str): Directory where checkpoint files are stored.
+        log_file (str): Path to the log file containing epoch loss information.
+        date_of_dataset_used (str): Date string used to identify relevant checkpoint files.
+    Returns:
+        None
+    This function reads the log file to find the epoch with the lowest loss and the last epoch.
+    It then removes all checkpoint files in the specified directory except for those corresponding
+    to the last epoch and the epoch with the lowest loss.
+    """
+    # Read the log file to find the epoch with the lowest loss
+    with open(log_file, 'r') as f:
+        lines = f.readlines()[8:]
+    
+    epoch_losses = {}
+    for line in lines:
+        if "Epoch" in line and "Loss" in line:
+            parts = line.split()
+            # Extract the epoch number from the format "Epoch: [52][0/17]"
+            epoch_str = parts[1] # Extract the epoch number from the format "Epoch: [52][0/17]"
+            epoch_str = epoch_str[:-6]  # Remove the last 6 characters
+            epoch = int(epoch_str.strip('[]'))
+            # Extract the loss value from the format "Loss: 0.000"
+            loss_str = parts[11]
+            loss = float(loss_str)
+            # Store the loss value for this epoch
+            epoch_losses[epoch] = loss 
+    
+    if not epoch_losses:
+        print("No epoch loss information found in log file.")
+        return
+    
+    lowest_loss_epoch = min(epoch_losses, key=epoch_losses.get)
+    print(f"Lowest loss epoch: {lowest_loss_epoch} with loss: {epoch_losses[lowest_loss_epoch]}")
+
+    # Get the last epoch
+    last_epoch = max(epoch_losses.keys())
+    print(f"Last epoch: {last_epoch}")
+
+    # Remove all checkpoints except the last epoch and the lowest loss epoch
+    for filename in os.listdir(checkpoint_dir):
+        if date_of_dataset_used not in filename:
+            continue
+
+        epoch_num = int(filename.split('_')[-1].split('.')[0])
+
+        if epoch_num != last_epoch and epoch_num != lowest_loss_epoch:
+            os.remove(os.path.join(checkpoint_dir, filename))
+            print(f"Removed checkpoint: {filename}")
 
 
 class AverageMeter(object):

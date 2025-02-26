@@ -16,63 +16,58 @@ from utils import create_dataset_folder, extract_files
 create_dataset_folder() #only run if you want to create a new dataset folder!!
 
 ##BLUFF_230724 DATA
+annotations_folder = r'GA_Dataset\20250224_OD\Annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'GA_Dataset/20250224_OD/Images' # Change this to the correct folder for which files are to be extracted to
+
 extract_files(date_of_dataset_used= 'Bluff_230724', # Change this to the correct dataset used, FOR REFERENCE ONLY
-                annotations_folder=r'GA_Dataset\20250221\Annotations', # Change this to the correct folder for which files were extracted 
-                images_folder=r'GA_Dataset\20250221\Images', # Change this to the correct folder for which files were extracted 
+                annotations_folder= annotations_folder, 
+                images_folder= images_folder, 
                 images_src_folder=r'Completed annotations/Bluff_230724/Original_Images_Unlabelled_Bluff_230724', # Change this to your source folder path 
                 annotations_src_folder=r'Completed annotations\Bluff_230724') # Change this to your source folder path
 
 ##PAM_Surf_220724 DATA
 extract_files(date_of_dataset_used= 'PAM_Surf_220724', # Change this to the correct dataset used, FOR REFERENCE ONLY
-                annotations_folder=r'GA_Dataset\20250221\Annotations', # Change this to the correct folder for which files were extracted 
-                images_folder=r'GA_Dataset\20250221\Images', # Change this to the correct folder for which files were extracted 
+                annotations_folder= annotations_folder, 
+                images_folder= images_folder, 
                 images_src_folder=r'Completed annotations/PAM_Surf_220724/Original_Images_Unlabelled_PAM_Surf_220724', # Change this to your source folder path 
                 annotations_src_folder=r'Completed annotations\PAM_Surf_220724') # Change this to your source folder path
 
 
 # Convert all label classes to 'cell'
 from objectdetector_utils import convert_labels_to_cell
-convert_labels_to_cell(annotations_folder= r'GA_Dataset\20250221_objectdetector\Annotations')
-
+convert_labels_to_cell(annotations_folder= annotations_folder)
 
 # Split the dataset into train, test and validation sets
 from utils import convert_files_to_list, split_and_copy_files
-images, annotations = convert_files_to_list(images_folder=r'GA_Dataset\20250221_objectdetector\Images', 
-                                            annotations_folder=r'GA_Dataset\20250221_objectdetector\Annotations') # Convert to list 
+images, annotations = convert_files_to_list(images_folder=images_folder, 
+                                            annotations_folder=annotations_folder) # Convert to list 
 
+output_folder = r'GA_Dataset\20250224_OD\Split' #output folder forw here split is stored 
 split_and_copy_files(images, annotations, #create_folders, copy files, then split into test and train
-                     output_folder=r'GA_Dataset\20250221_objectdetector\Split') #output folder
-
-
-
-
-
+                     output_folder= output_folder) 
 
 
 # Creating datalists for the train, val and test data
 from utils import create_data_lists
+from label_map_OD import label_map # Label map (explicitly defined)
 import shutil
-import json
-import os
-import pandas as pd
 
-label_classes = ('cell', 'UNKNOWN')  # Define label classes directly
-label_map_objectdetector = {k: v + 1 for v, k in enumerate(label_classes)}
-label_map_objectdetector['background'] = 0  # Background is the first class
-rev_label_map_objectdetector = {v: k for k, v in label_map_objectdetector.items()}  # Inverse mapping
+train_annotation_path= r'GA_Dataset\20250224_OD\Split\train\annotations'
+train_image_path= r'GA_Dataset\20250224_OD\Split\train\images'
+test_annotation_path= r'GA_Dataset\20250224_OD\Split\test\annotations'
+test_image_path= r'GA_Dataset\20250224_OD\Split\test\images'
+date_of_dataset_used='20250224_OD'
 
-
-create_data_lists(train_annotation_path=r'GA_Dataset\20250221_objectdetector\Split\train\annotations',
-                train_image_path=r'GA_Dataset\20250221_objectdetector\Split\train\images',
-                test_annotation_path=r'GA_Dataset\20250221_objectdetector\Split\test\annotations',
-                test_image_path=r'GA_Dataset\20250221_objectdetector\Split\test\images',
-                label_map=label_map_objectdetector,
-                date_of_dataset_used='20250221_objectdetector',
+create_data_lists(train_annotation_path=train_annotation_path,
+                train_image_path=train_image_path,
+                test_annotation_path=test_annotation_path,
+                test_image_path=test_image_path,
+                label_map=label_map,
+                date_of_dataset_used=date_of_dataset_used,
                 JSON_folder=r'JSON_folder')
 
-
 # Check if model is already trained and present 
-date_of_dataset_used = '20250221_objectdetector'
+date_of_dataset_used = '20250224_OD'
 model_path = os.path.join(date_of_dataset_used + '_checkpoint_ssd300.pth')
 
 if os.path.exists(model_path):
@@ -85,11 +80,52 @@ else:
 
 ## Suppress specific warnings
 import warnings
+from utils import manage_training_output_file
 warnings.filterwarnings("ignore")
 
-subprocess.run(['python', 'train.py', 
-                '--data_folder', r'JSON_folder\20250221_objectdetector',
-                '--date_of_dataset_used', '20250221_objectdetector',])
+# Training the model and saving the results to a .txt file
+data_folder = r'JSON_folder\20250224_OD'
+date_of_dataset_used = '20250224_OD'
+checkpoint = r'Checkpoints\20250224_OD_checkpoint_113.pth.tar'
+checkpoint_frequency = '120'
+lr = '1e-4'
+iterations = '1200'
+
+# set up training output file
+results_folder = r'Results'
+training_output_file = manage_training_output_file(results_folder = results_folder,
+                                                date_of_dataset_used= date_of_dataset_used, 
+                                                checkpoint_frequency = checkpoint_frequency,
+                                                lr =  lr, 
+                                                iterations = iterations)
+
+# Run the training process and save the output
+with open(training_output_file, 'a') as f:
+    for line in subprocess.run(['python', 'train.py', 
+                '--data_folder', data_folder,
+                '--date_of_dataset_used', date_of_dataset_used,
+                '--save_dir', r'Checkpoints',
+                '--checkpoint', checkpoint,
+                '--checkpoint_frequency', checkpoint_frequency,
+                '--lr', lr,
+                '--iterations', iterations], stdout=f):
+        if line.startswith('Epoch:'):  # write lines starting with 'Epoch:'
+            f.write(line)
+
+# Return the relative file path of the training output file
+print(f"Training output file saved at: {os.path.relpath(training_output_file)}")
+
+
+
+
+# keep only relevant checkpoints
+from utils import keep_checkpoints
+
+training_output_file = 
+date_of_dataset_used = 
+keep_checkpoints(checkpoint_dir=r'Checkpoints', 
+                 log_file= training_output_file,
+                 date_of_dataset_used= date_of_dataset_used
 
 
 # Evaluate the model and save the results to a .txt file
@@ -110,4 +146,3 @@ with open(evaluation_output_file, 'w') as f:
 subprocess.run(['python', 'detect.py',
                 '--checkpoint', checkpoint,
                 '--img_path', r'GA_Dataset/Split/test/images/0.tif'])
-
