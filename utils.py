@@ -11,6 +11,7 @@ import pandas as pd
 from datetime import datetime
 from label_map import *
 
+
 device = torch.device("cpu")
 
 # Color map for bounding boxes of detected objects from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
@@ -287,7 +288,18 @@ if __name__ == '__main__':
 # Datalist creation
 
 def parse_annotation(annotation_file, label_map): #FILE not path, because path is to folder, and path is to indifidual file
-                                        #annotation_file is created in create_data_lists()
+    """
+    Parse an XML annotation file to extract bounding box coordinates, labels, and difficulty levels.
+    Args:
+        annotation_file (str): Path to the XML annotation file.
+        label_map (dict): A dictionary mapping label names to integer values.
+    Returns:
+        dict: A dictionary containing:
+            - 'boxes' (list of list of int): Bounding box coordinates [xmin, ymin, xmax, ymax].
+            - 'labels' (list of int): Corresponding labels for each bounding box.
+            - 'difficulties' (list of int): Difficulty levels for each object (0 or 1).
+    """
+#annotation_file is created in create_data_lists()
 
     tree = ET.parse(annotation_file)
     root = tree.getroot()
