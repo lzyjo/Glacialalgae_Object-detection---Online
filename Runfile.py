@@ -3,11 +3,38 @@ import json
 import os
 import pandas as pd
 import subprocess
+from torchvision.transforms import v2 as T
 
 ## Check the current working directory
 cwd = os.getcwd()
 print(f"Current working directory: {cwd}")
 
+
+# DATA AUGMENTATION
+from augmentation import *
+
+GA_dataset_path = r'GA_Dataset'
+date_of_dataset_used = '20250221'
+image_dir = r'GA_Dataset\20250221\Images'
+annotation_dir = r'GA_Dataset\20250221\Annotations'
+transformations = T.RandomRotation(degrees=15) # Always flip vertically
+'''transformations = T.Compose([
+    T.RandomHorizontalFlip(p=0.5),  # Randomly flip the image horizontally
+    T.RandomVerticalFlip(p=0.5),    # Randomly flip the image vertically
+    T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),  # Randomly change the brightness, contrast, saturation, and hue
+    T.RandomRotation(degrees=15),   # Randomly rotate the image by up to 15 degrees
+    T.ToTensor()                    # Convert the image to a tensor
+])
+'''
+
+run_augmentation_pipeline(GA_dataset_path= GA_dataset_path,
+                          date_of_dataset_used= date_of_dataset_used,
+                          image_dir= image_dir,
+                          annotation_dir= annotation_dir,
+                          transformations= transformations,
+                          num_pairs=5)
+
+# RANDOM ROTATION RETURNS ISSUE WITH BOUNDING BOX TRANSFORMATIONS (not correctly rotated in line with image)
 
 
 # Dataset prep and set up
@@ -31,6 +58,10 @@ extract_files(date_of_dataset_used= 'PAM_Surf_220724', # Change this to the corr
                 images_folder= images_folder, 
                 images_src_folder=r'Completed annotations/PAM_Surf_220724/Original_Images_Unlabelled_PAM_Surf_220724', # Change this to your source folder path 
                 annotations_src_folder=r'Completed annotations\PAM_Surf_220724') # Change this to your source folder path
+
+
+
+
 
 
 # Split the dataset into train, test and validation sets
@@ -63,6 +94,8 @@ create_data_lists(train_annotation_path=train_annotation_path,
                 JSON_folder=r'JSON_folder')
 
 
+
+
 # Check if model is already trained and present 
 date_of_dataset_used = '20250221'
 model_path = os.path.join(date_of_dataset_used + '_checkpoint_ssd300.pth')
@@ -73,7 +106,10 @@ else:
     print(f'Model for date: {date_of_dataset_used} not trained or present: {model_path} not present in cwd')
 
 
-# Training the model
+
+
+
+# TRAIN MODEL
 
 ## Suppress specific warnings
 import warnings
@@ -141,6 +177,7 @@ keep_checkpoints(checkpoint_dir=r'Checkpoints',
                  date_of_dataset_used= date_of_dataset_used)
 
 
+# EVALUATE MODEL
 
 # Evaluate the model and save the results to a .txt file
 checkpoint = r'Checkpoints\20250219_checkpoint_3.pth.tar'

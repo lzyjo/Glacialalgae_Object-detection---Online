@@ -105,7 +105,7 @@ def prepare_data_for_augmentation(GA_dataset_path,
 
 
 def data_augmentation(augmented_image_dir, augmented_annotation_dir, 
-                      transform):
+                      transformations):
     """
     Perform data augmentation on images and their corresponding annotations.
     Parameters:
@@ -122,7 +122,7 @@ def data_augmentation(augmented_image_dir, augmented_annotation_dir,
         image_path = os.path.join(augmented_image_dir, image)
         image = Image.open(image_path, mode='r').convert('RGB')
         image = tv_tensors.Image(image)
-        augmented_image = transform(image)
+        augmented_image = transformations(image)
         augmented_image = T.ToPILImage()(augmented_image)
         augmented_image.save(image_path)
 
@@ -137,7 +137,7 @@ def data_augmentation(augmented_image_dir, augmented_annotation_dir,
                                        canvas_size=(augmented_image.size[1], 
                                                     augmented_image.size[0]))
 
-        augmented_boxes = transform(boxes) #augmented_boxes = [apply_transform_to_bbox(bbox, transform, image_size) for bbox in boxes]
+        augmented_boxes = transformations(boxes)
 
         # Parse the XML file and get the root element
         tree = ET.parse(annotation_path)
@@ -152,6 +152,8 @@ def data_augmentation(augmented_image_dir, augmented_annotation_dir,
             bbox.find('xmax').text = str(int(new_bbox[2].item()))
             bbox.find('ymax').text = str(int(new_bbox[3].item()))
         new_tree.write(annotation_path)
+
+
 
 def visual_augmentation_check(original_image_dir, original_annotation_dir, 
                                 augmented_image_dir, augmented_annotation_dir, 
@@ -218,3 +220,44 @@ def visual_augmentation_check(original_image_dir, original_annotation_dir,
         ax[1].set_title(f'Augmented Image - Pair {pair_number}')
 
         plt.show()
+
+
+def run_augmentation_pipeline(GA_dataset_path, date_of_dataset_used, 
+                              image_dir, annotation_dir, 
+                              transformations, num_pairs=15):
+    """
+    Runs the entire augmentation pipeline including data preparation, augmentation,
+    and visualization of the original and augmented images with bounding boxes.
+    Parameters:
+    GA_dataset_path (str): The path to the Glacial Algae dataset.
+    date_of_dataset_used (str): The date of the dataset being used.
+    image_dir (str): The directory containing the original images.
+    annotation_dir (str): The directory containing the original annotations.
+    transformations (object): The transformations to be applied to the data.
+    num_pairs (int): Number of image-annotation pairs to display. Default is 15.
+    Returns:
+    None
+    """
+    # Prepare data for augmentation
+    prepare_data_for_augmentation(GA_dataset_path, date_of_dataset_used, 
+                                  image_dir, annotation_dir, 
+                                  transformations)
+    print("Data prepared for augmentation.")
+    
+    # Define new directories for augmented data
+    transform_name = type(transformations).__name__.lower()
+    new_data_dir = os.path.join(GA_dataset_path, f"{date_of_dataset_used}_{transform_name}")
+    new_image_dir = os.path.join(new_data_dir, "Images")
+    new_annotation_dir = os.path.join(new_data_dir, "Annotations")
+    print(f"New data directory: {new_data_dir}")
+    print(f"New image directory: {new_image_dir}")
+    print(f"New annotation directory: {new_annotation_dir}")
+    
+    # Perform data augmentation
+    data_augmentation(new_image_dir, new_annotation_dir, transformations)
+    print("Data augmentation completed.")
+    
+    # Visualize the original and augmented images with bounding boxes
+    visual_augmentation_check(image_dir, annotation_dir, 
+                              new_image_dir, new_annotation_dir, 
+                              num_pairs)
