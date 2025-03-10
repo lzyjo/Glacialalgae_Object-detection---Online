@@ -21,19 +21,27 @@ device = torch.device("cpu")
 # Dataset prep
 
 
-def create_dataset_folder(): #use whenever you want to update the dataset used for training
-    def create_dataset_folder():
-        """
-        Creates a new dataset folder structure with the current date.
-        This function generates a folder structure for storing dataset annotations, images, 
-        and split information. The folders are named based on the current date in the format YYYYMMDD.
-        Returns:
-            tuple: A tuple containing the paths to the annotations folder, images folder, 
-                   split folder, and the main date folder.
-        """
+def create_dataset_folder(folder_type, folder_date): #use whenever you want to update the dataset used for training
+    """
+    Creates a new dataset folder structure with the current date.
+    This function generates a folder structure for storing dataset annotations, images, 
+    and split information. The folders are named based on the current date in the format YYYYMMDD.
+    Args:
+        folder_type (str): The type of folder to create. Either 'no_augmentation' or 'augmented_data'.
+        folder_date (str): The date of the folder to create. If None, use the current date.
+    Returns:
+        tuple: A tuple containing the paths to the annotations folder, images folder, 
+               split folder, and the main date folder.
+    """
     # Define source, annotations, and images folders
     current_date = datetime.now().strftime('%Y%m%d')
-    date_folder = rf'GA_Dataset\{current_date}'
+    if folder_type == 'no_augmentation' and folder_date is None:
+        date_folder = os.path.join('GA_Dataset', f'{current_date}')
+    elif folder_type == 'augmented_data' and folder_date is not None:
+        date_folder = os.path.join(f'{folder_type}_GA_Dataset', f'{folder_date}')
+    else:
+        raise ValueError("Invalid folder_type or folder_date combination")
+
     annotations_folder = os.path.join(date_folder, 'Annotations')
     images_folder = os.path.join(date_folder, 'Images')
     split_folder = os.path.join(date_folder, 'Split')
@@ -42,12 +50,13 @@ def create_dataset_folder(): #use whenever you want to update the dataset used f
     os.makedirs(annotations_folder, exist_ok=True)
     os.makedirs(images_folder, exist_ok=True)
     os.makedirs(split_folder, exist_ok=True)
-    os.makedirs(date_folder, exist_ok=True)
 
     return annotations_folder, images_folder, split_folder, date_folder
 
 if __name__ == '__main__':
-    create_dataset_folder()
+    create_dataset_folder(folder_type='no augmentation', folder_date=None) #only run if you want to create a new dataset folder!!
+
+
 
 def extract_files(date_of_dataset_used, annotations_folder, images_folder, annotations_src_folder, images_src_folder):   # Define source, annotations, and images folders
     """

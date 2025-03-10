@@ -11,28 +11,70 @@ print(f"Current working directory: {cwd}")
 
 
 
-# DATASET PREPARATION FOR SPLIT (N0 AUGMENTATION)
+# DATA AUGMENTATION
+from augmentation import *
+
+GA_dataset_path = r'GA_Dataset'
+date_of_dataset_used = '20250221'
+image_dir = r'GA_Dataset\20250221\Images'
+annotation_dir = r'GA_Dataset\20250221\Annotations'
+transformations = T.Compose([
+    T.RandomHorizontalFlip(p=1.0),
+    T.RandomVerticalFlip(p=1.0)])
+
+run_augmentation_pipeline(GA_dataset_path= GA_dataset_path,
+                          date_of_dataset_used= date_of_dataset_used,
+                          image_dir= image_dir,
+                          annotation_dir= annotation_dir,
+                          transformations= transformations,
+                          num_pairs=5)
+
+# RANDOM ROTATION RETURNS ISSUE WITH BOUNDING BOX TRANSFORMATIONS (not correctly rotated in line with image)
+
+
+
+
+# DATASET PREPARATION FOR SPLIT (WITH AUGMENTATION)
 from utils import create_dataset_folder, extract_files
 
-# Create a new dataset folder for the data extracted at a recent/new date
-create_dataset_folder() #only run if you want to create a new dataset folder!!
+# Create dataset folder because we are combining multiple datasets:
+                                                                # GA_Dataset\20250221
+                                                                # GA_Dataset\20250221_randomhorizontalflip
+                                                                # GA_Dataset\20250221_randomverticalflip
+                                                                # GA_Dataset\20250221_randomrotation
+create_dataset_folder(folder_type='Training', folder_date='20250221')  # Only run if you want to create a new dataset folder!!
 
-annotations_folder = r'GA_Dataset\20250221\Annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'GA_Dataset/20250221/Images' # Change this to the correct folder for which files are to be extracted to
+annotations_folder = r'Training_GA_Dataset\20250221\Annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'Training_GA_Dataset\20250221\Images' # Change this to the correct folder for which files are to be extracted to
 
-##BLUFF_230724 DATA
-extract_files(date_of_dataset_used= 'Bluff_230724', # Change this to the correct dataset used, FOR REFERENCE ONLY
+## Run only once for each dataset for file extraction
+##20250221 (not augmented) DATA
+extract_files(date_of_dataset_used= '20250221', # Change this to the correct dataset used, FOR REFERENCE ONLY
                 annotations_folder= annotations_folder, 
                 images_folder= images_folder, 
-                images_src_folder=r'Completed annotations/Bluff_230724/Original_Images_Unlabelled_Bluff_230724', # Change this to your source folder path 
-                annotations_src_folder=r'Completed annotations\Bluff_230724') # Change this to your source folder path
+                images_src_folder=r'GA_Dataset\20250221\Images', # Change this to your source folder path 
+                annotations_src_folder=r'GA_Dataset\20250221\Annotations') # Change this to your source folder path
 
-##PAM_Surf_220724 DATA
-extract_files(date_of_dataset_used= 'PAM_Surf_220724', # Change this to the correct dataset used, FOR REFERENCE ONLY
+##20250221_randomhorizontalflip DATA
+extract_files(date_of_dataset_used= '20250221_randomhorizontalflip', # Change this to the correct dataset used, FOR REFERENCE ONLY
                 annotations_folder= annotations_folder, 
                 images_folder= images_folder, 
-                images_src_folder=r'Completed annotations/PAM_Surf_220724/Original_Images_Unlabelled_PAM_Surf_220724', # Change this to your source folder path 
-                annotations_src_folder=r'Completed annotations\PAM_Surf_220724') # Change this to your source folder path
+                images_src_folder=r'GA_Dataset\20250221_randomhorizontalflip\Images', # Change this to your source folder path 
+                annotations_src_folder=r'GA_Dataset\20250221_randomhorizontalflip\Annotations') # Change this to your source folder path
+
+##20250221_randomverticalflip DATA
+extract_files(date_of_dataset_used= '20250221_randomverticalflip', # Change this to the correct dataset used, FOR REFERENCE ONLY
+                annotations_folder= annotations_folder,
+                images_folder= images_folder,
+                images_src_folder=r'GA_Dataset\20250221_randomverticalflip\Images', # Change this to your source folder path
+                annotations_src_folder=r'GA_Dataset\20250221_randomverticalflip\Annotations') # Change this to your source folder path
+
+## GA_Dataset/20250221_randomhorizontalflip_randomverticalflip DATA
+extract_files(date_of_dataset_used= '20250221_randomhorizontalflip_randomverticalflip', # Change this to the correct dataset used, FOR REFERENCE ONLY
+                annotations_folder= annotations_folder,
+                images_folder= images_folder,
+                images_src_folder=r'GA_Dataset\20250221_randomhorizontalflip_randomverticalflip\Images', # Change this to your source folder path
+                annotations_src_folder=r'GA_Dataset\20250221_randomhorizontalflip_randomverticalflip\Annotations') # Change this to your source folder path
 
 
 # Split the dataset into train, test and validation sets
@@ -40,9 +82,10 @@ from utils import convert_files_to_list, split_and_copy_files
 images, annotations = convert_files_to_list(images_folder=images_folder, 
                                             annotations_folder=annotations_folder) # Convert to list 
 
-output_folder = r'GA_Dataset\20250224\Split' #output folder forw here split is stored 
+output_folder = r'Training_GA_Dataset\20250221\Split' #output folder forw here split is stored 
 split_and_copy_files(images, annotations, #create_folders, copy files, then split into test and train
                      output_folder= output_folder) 
+
 
 
 # Creating datalists for the train, val and test data
@@ -50,11 +93,11 @@ from utils import create_data_lists
 from label_map import label_map # Label map (explicitly defined)
 import shutil
 
-train_annotation_path= r'GA_Dataset\20250221\Split\train\annotations'
-train_image_path= r'GA_Dataset\20250221\Split\train\images'
-test_annotation_path= r'GA_Dataset\20250221\Split\test\annotations'
-test_image_path= r'GA_Dataset\20250221\Split\test\images'
-date_of_dataset_used='20250221'
+train_annotation_path= r'Training_GA_Dataset\20250221\Split\train\annotations'
+train_image_path= r'Training_GA_Dataset\20250221\Split\train\images'  
+test_annotation_path= r'Training_GA_Dataset\20250221\Split\test\annotations'
+test_image_path= r'Training_GA_Dataset\20250221\Split\test\images'
+date_of_dataset_used='20250221_augmented'
 
 create_data_lists(train_annotation_path=train_annotation_path,
                 train_image_path=train_image_path,
@@ -66,8 +109,11 @@ create_data_lists(train_annotation_path=train_annotation_path,
 
 
 
+
+
 # Check if model is already trained and present 
 date_of_dataset_used = '20250221'
+date_of_dataset_used = date_of_dataset_used + '_augmentation'
 model_path = os.path.join(date_of_dataset_used + '_checkpoint_ssd300.pth')
 
 if os.path.exists(model_path):

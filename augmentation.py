@@ -41,7 +41,10 @@ def prepare_data_for_augmentation(GA_dataset_path,
         sys.exit()
 
     #Create a new folder to store the augmented data
-    transform_name = type(transformations).__name__.lower()
+    if isinstance(transformations, T.Compose):
+        transform_name = "_".join([type(t).__name__.lower() for t in transformations.transforms])
+    else:
+        transform_name = type(transformations).__name__.lower()
 
     # Create a new directory to store the augmented data
     new_data_dir = os.path.join(GA_dataset_path,
@@ -245,7 +248,10 @@ def run_augmentation_pipeline(GA_dataset_path, date_of_dataset_used,
     print("Data prepared for augmentation.")
     
     # Define new directories for augmented data
-    transform_name = type(transformations).__name__.lower()
+    if isinstance(transformations, T.Compose):
+        transform_name = "_".join([type(t).__name__.lower() for t in transformations.transforms])
+    else:
+        transform_name = type(transformations).__name__.lower()
     new_data_dir = os.path.join(GA_dataset_path, f"{date_of_dataset_used}_{transform_name}")
     new_image_dir = os.path.join(new_data_dir, "Images")
     new_annotation_dir = os.path.join(new_data_dir, "Annotations")

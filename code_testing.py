@@ -124,8 +124,23 @@ for i, (image_file_original, annotation_file_original, image_file_augmented, ann
 
 
 
+from torchvision import tv_tensors  # we'll describe this a bit later, bare with us
 
+boxes = tv_tensors.BoundingBoxes(
+    [
+        [15, 10, 370, 510],
+        [275, 340, 510, 510],
+        [130, 345, 210, 425]
+    ],
+    format="XYXY", canvas_size=img.shape[-2:])
 
+transforms = v2.Compose([
+    v2.RandomResizedCrop(size=(224, 224), antialias=True),
+    v2.RandomPhotometricDistort(p=1),
+    v2.RandomHorizontalFlip(p=1),
+])
+out_img, out_boxes = transforms(img, boxes)
+print(type(boxes), type(out_boxes))
 
 
 
@@ -165,6 +180,8 @@ for bbox in augmented_boxes:
     ax.add_patch(rect)
 
 plt.show()
+
+
 
 
 
