@@ -17,10 +17,10 @@ print(f"Current working directory: {cwd}")
 from utils import create_dataset_folder
 
 # Create dataset folder because we are combining multiple datasets:
-                                                                # GA_Dataset\20250221
-                                                                # GA_Dataset\20250221_randomhorizontalflip
-                                                                # GA_Dataset\20250221_randomverticalflip
-                                                                # GA_Dataset\20250221_randomrotation
+                                                                # 1_GA_Dataset\20250221
+                                                                # 1_GA_Dataset\20250221_randomhorizontalflip
+                                                                # 1_GA_Dataset\20250221_randomverticalflip
+                                                                # 1_GA_Dataset\20250221_randomrotation
 create_dataset_folder(folder_type='no_augmentation', 
                       folder_date='20250221')  # Only run if you want to create a new dataset folder!!
 
@@ -29,8 +29,8 @@ create_dataset_folder(folder_type='no_augmentation',
 from utils import extract_files
 
 
-annotations_folder = r'GA_Dataset\20250318\Annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'GA_Dataset\20250318\Images' # Change this to the correct folder for which files are to be extracted to
+annotations_folder = r'1_GA_Dataset\20250318\Annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'1_GA_Dataset\20250318\Images' # Change this to the correct folder for which files are to be extracted to
 
 ## Run only once for each dataset for file extraction
 
@@ -38,15 +38,15 @@ images_folder = r'GA_Dataset\20250318\Images' # Change this to the correct folde
 extract_files(date_of_dataset_used= 'Bluff_230724', # Change this to the correct dataset used, FOR REFERENCE ONLY
                 annotations_folder= annotations_folder, 
                 images_folder= images_folder, 
-                images_src_folder=r'Completed annotations/Bluff_230724/Original_Images_Unlabelled_Bluff_230724', # Change this to your source folder path 
-                annotations_src_folder=r'Completed annotations\Bluff_230724') # Change this to your source folder path
+                images_src_folder=r'0_Completed annotations/Bluff_230724/Original_Images_Unlabelled_Bluff_230724', # Change this to your source folder path 
+                annotations_src_folder=r'0_Completed annotations\Bluff_230724') # Change this to your source folder path
 
 ##PAM_Surf_220724 DATA
 extract_files(date_of_dataset_used= 'PAM_Surf_220724', # Change this to the correct dataset used, FOR REFERENCE ONLY
                 annotations_folder= annotations_folder, 
                 images_folder= images_folder, 
-                images_src_folder=r'Completed annotations/PAM_Surf_220724/Original_Images_Unlabelled_PAM_Surf_220724', # Change this to your source folder path 
-                annotations_src_folder=r'Completed annotations\PAM_Surf_220724') # Change this to your source folder path
+                images_src_folder=r'0_Completed annotations/PAM_Surf_220724/Original_Images_Unlabelled_PAM_Surf_220724', # Change this to your source folder path 
+                annotations_src_folder=r'0_Completed annotations\PAM_Surf_220724') # Change this to your source folder path
 
 
 
@@ -54,11 +54,11 @@ extract_files(date_of_dataset_used= 'PAM_Surf_220724', # Change this to the corr
 # DATA AUGMENTATION
 from augmentation import *
 
-augmented_dataset_path = r'Data_Augmentation'
+augmented_dataset_path = r'2_Data_Augmentation'
 current_date = datetime.now().strftime('%Y%m%d')
 date_of_dataset_used = '20250318'
-image_dir = r'GA_Dataset\20250318\Annotations' #Original annotation folder in GA_Dataset 
-annotation_dir = r'GA_Dataset\20250318\Images' #Original image folder in GA_Dataset
+image_dir = r'1_GA_Dataset\20250318\Annotations' #Original annotation folder in GA_Dataset 
+annotation_dir = r'1_GA_Dataset\20250318\Images' #Original image folder in GA_Dataset
 
 
 
@@ -110,10 +110,10 @@ for i, transformations in enumerate(all_transformations):
 from utils import create_dataset_folder
 
 # Create dataset folder because we are combining multiple datasets:
-                                                                # GA_Dataset\20250221
-                                                                # GA_Dataset\20250221_randomhorizontalflip
-                                                                # GA_Dataset\20250221_randomverticalflip
-                                                                # GA_Dataset\20250221_randomrotation
+                                                                # 1_GA_Dataset\20250221
+                                                                # 1_GA_Dataset\20250221_randomhorizontalflip
+                                                                # 1_GA_Dataset\20250221_randomverticalflip
+                                                                # 1_GA_Dataset\20250221_randomrotation
 create_dataset_folder(folder_type='augmented_data', 
                       folder_date='20250221')  # Only run if you want to create a new dataset folder!!
 
@@ -123,44 +123,44 @@ create_dataset_folder(folder_type='augmented_data',
 from utils import extract_files
 
 
-annotations_folder = r'TrainingData\20250221\Annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'TrainingData\20250221\Images' # Change this to the correct folder for which files are to be extracted to
+annotations_folder = r'3_TrainingData\20250221\Annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'3_TrainingData\20250221\Images' # Change this to the correct folder for which files are to be extracted to
 
 ## Run only once for each dataset for file extraction
 ##20250221 (not augmented) DATA
 extract_files(date_of_dataset_used= '20250221', # Change this to the correct dataset used, FOR REFERENCE ONLY
                 annotations_folder= annotations_folder, 
                 images_folder= images_folder, 
-                images_src_folder=r'GA_Dataset\20250221\Images', # Change this to your source folder path 
-                annotations_src_folder=r'GA_Dataset\20250221\Annotations') # Change this to your source folder path
+                images_src_folder=r'1_GA_Dataset\20250221\Images', # Change this to your source folder path 
+                annotations_src_folder=r'1_GA_Dataset\20250221\Annotations') # Change this to your source folder path
 
 ##20250221_randomhorizontalflip DATA
 extract_files(date_of_dataset_used= '20250221_randomhorizontalflip', # Change this to the correct dataset used, FOR REFERENCE ONLY
                 annotations_folder= annotations_folder, 
                 images_folder= images_folder, 
-                images_src_folder=r'GA_Dataset\20250221_randomhorizontalflip\Images', # Change this to your source folder path 
-                annotations_src_folder=r'GA_Dataset\20250221_randomhorizontalflip\Annotations') # Change this to your source folder path
+                images_src_folder=r'1_GA_Dataset\20250221_randomhorizontalflip\Images', # Change this to your source folder path 
+                annotations_src_folder=r'1_GA_Dataset\20250221_randomhorizontalflip\Annotations') # Change this to your source folder path
 
 ##20250221_randomverticalflip DATA
 extract_files(date_of_dataset_used= '20250221_randomverticalflip', # Change this to the correct dataset used, FOR REFERENCE ONLY
                 annotations_folder= annotations_folder,
                 images_folder= images_folder,
-                images_src_folder=r'GA_Dataset\20250221_randomverticalflip\Images', # Change this to your source folder path
-                annotations_src_folder=r'GA_Dataset\20250221_randomverticalflip\Annotations') # Change this to your source folder path
+                images_src_folder=r'1_GA_Dataset\20250221_randomverticalflip\Images', # Change this to your source folder path
+                annotations_src_folder=r'1_GA_Dataset\20250221_randomverticalflip\Annotations') # Change this to your source folder path
 
-## GA_Dataset/20250221_randomhorizontalflip_randomverticalflip DATA
+## 1_GA_Dataset/20250221_randomhorizontalflip_randomverticalflip DATA
 extract_files(date_of_dataset_used= '20250221_randomhorizontalflip_randomverticalflip', # Change this to the correct dataset used, FOR REFERENCE ONLY
                 annotations_folder= annotations_folder,
                 images_folder= images_folder,
-                images_src_folder=r'GA_Dataset\20250221_randomhorizontalflip_randomverticalflip\Images', # Change this to your source folder path
-                annotations_src_folder=r'GA_Dataset\20250221_randomhorizontalflip_randomverticalflip\Annotations') # Change this to your source folder path
+                images_src_folder=r'1_GA_Dataset\20250221_randomhorizontalflip_randomverticalflip\Images', # Change this to your source folder path
+                annotations_src_folder=r'1_GA_Dataset\20250221_randomhorizontalflip_randomverticalflip\Annotations') # Change this to your source folder path
 
-##Data_Augmentation/20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter
+##2_Data_Augmentation/20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter
 extract_files(date_of_dataset_used= '20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter', # Change this to the correct dataset used, FOR REFERENCE ONLY
                 annotations_folder= annotations_folder,
                 images_folder= images_folder,
-                images_src_folder=r'Data_Augmentation\20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter\Images', # Change this to your source folder path
-                annotations_src_folder=r'Data_Augmentation\20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter\Annotations') # Change this to your source folder path
+                images_src_folder=r'2_Data_Augmentation\20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter\Images', # Change this to your source folder path
+                annotations_src_folder=r'2_Data_Augmentation\20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter\Annotations') # Change this to your source folder path
 
 
 
@@ -171,7 +171,7 @@ from utils import convert_files_to_list, split_and_copy_files
 images, annotations = convert_files_to_list(images_folder=images_folder, 
                                             annotations_folder=annotations_folder) # Convert to list 
 
-output_folder = r'TrainingData\20250221\Split' #output folder forw here split is stored 
+output_folder = r'3_TrainingData\20250221\Split' #output folder forw here split is stored 
 split_and_copy_files(images, annotations, #create_folders, copy files, then split into test and train
                      output_folder= output_folder) 
 
@@ -183,10 +183,10 @@ from utils import create_data_lists
 from label_map import label_map # Label map (explicitly defined)
 import shutil
 
-train_annotation_path= r'TrainingData\20250221\Split\train\annotations'
-train_image_path= r'TrainingData\20250221\Split\train\images'  
-test_annotation_path= r'TrainingData\20250221\Split\test\annotations'
-test_image_path= r'TrainingData\20250221\Split\test\images'
+train_annotation_path= r'3_TrainingData\20250221\Split\train\annotations'
+train_image_path= r'3_TrainingData\20250221\Split\train\images'  
+test_annotation_path= r'3_TrainingData\20250221\Split\test\annotations'
+test_image_path= r'3_TrainingData\20250221\Split\test\images'
 date_of_dataset_used='20250221_augmented'
 
 create_data_lists(train_annotation_path=train_annotation_path,
@@ -195,7 +195,7 @@ create_data_lists(train_annotation_path=train_annotation_path,
                 test_image_path=test_image_path,
                 label_map=label_map,
                 date_of_dataset_used=date_of_dataset_used,
-                JSON_folder=r'JSON_folder')
+                JSON_folder=r'4_JSON_folder')
 
 
 
@@ -229,19 +229,19 @@ from utils import manage_training_output_file
 
 ## Set up training output file
 date_of_dataset_used = '20250221_augmented'
-results_folder = r'Results'
+results_folder = r'5_Results'
 training_output_file = manage_training_output_file(results_folder = results_folder,
                                                 date_of_dataset_used= date_of_dataset_used)
 
 
 # Run the training process and save the output
-data_folder = r'JSON_folder\20250221_augmented'
+data_folder = r'4_JSON_folder\20250221_augmented'
 
 with open(training_output_file, 'a') as f:
     subprocess.run(['python', 'train.py', 
                     '--data_folder', data_folder,
                     '--date_of_dataset_used', date_of_dataset_used,
-                    '--save_dir', r'Checkpoints'], 
+                    '--save_dir', r'6_Checkpoints'], 
                     stdout=f)
 
 # Run the training process and save the output
@@ -249,7 +249,7 @@ with open(training_output_file, 'a') as f:
     result = subprocess.run(['python', 'train.py', 
                 '--data_folder', data_folder,
                 '--date_of_dataset_used', date_of_dataset_used,
-                '--save_dir', r'Checkpoints',
+                '--save_dir', r'6_Checkpoints',
                 '--checkpoint', checkpoint if checkpoint else '',
                 '--checkpoint_frequency', checkpoint_frequency,
                 '--lr', lr,
@@ -267,9 +267,9 @@ print(f"Training output file saved at: {os.path.relpath(training_output_file)}")
 # keep only relevant checkpoints
 from utils import keep_checkpoints
 
-training_output_file =  r'Results\training_results_20250221_augmented.txt'
+training_output_file =  r'5_Results\training_results_20250221_augmented.txt'
 date_of_dataset_used = '20250221_augmented'
-keep_checkpoints(checkpoint_dir=r'Checkpoints', 
+keep_checkpoints(checkpoint_dir=r'6_Checkpoints', 
                  log_file= training_output_file,
                  date_of_dataset_used= date_of_dataset_used)
 
@@ -278,7 +278,7 @@ keep_checkpoints(checkpoint_dir=r'Checkpoints',
 
 # Evaluate the model and save the results to a .txt file
 checkpoint = r''
-results_folder = r'Results'
+results_folder = r'5_Results'
 evaluation_output_file = os.path.join(results_folder, f'evaluation_results_{os.path.basename(checkpoint)}.txt')
 
 # Ensure the results folder exists
@@ -286,12 +286,12 @@ os.makedirs(results_folder, exist_ok=True)
 
 with open(evaluation_output_file, 'w') as f:
     subprocess.run(['python', 'eval.py',
-                    '--data_folder', r'JSON_folder\20250219',
+                    '--data_folder', r'4_JSON_folder\20250219',
                     '--checkpoint', checkpoint], stdout=f)
 
 
 # Inference 
 subprocess.run(['python', 'detect.py',
                 '--checkpoint', checkpoint,
-                '--img_path', r'GA_Dataset/Split/test/images/0.tif'])
+                '--img_path', r'1_GA_Dataset/Split/test/images/0.tif'])
 
