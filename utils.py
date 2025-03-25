@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 from datetime import datetime
 from label_map import *
+from hyperparameters import *
 
 
 device = torch.device("cpu")
@@ -38,7 +39,7 @@ def create_dataset_folder(folder_type, folder_date): #use whenever you want to u
     if folder_type == 'no_augmentation' and folder_date is None:
         date_folder = os.path.join('GA_Dataset', f'{current_date}')
     elif folder_type == 'augmented_data' and folder_date is not None:
-        date_folder = os.path.join(f'{folder_type}_GA_Dataset', f'{folder_date}')
+        date_folder = os.path.join('TrainingData', f'{folder_date}', 'Augmented')
     else:
         raise ValueError("Invalid folder_type or folder_date combination")
 
@@ -274,6 +275,15 @@ def split_and_copy_files(images, annotations, output_folder,  test_size=None, ra
         len(os.listdir(os.path.join(output_folder,   'test', 'annotations'))) > 0:
 
         print("Train and test lists already exist. Dataset has been split and contains relevant files.")
+
+        total_annotations = len(os.listdir(os.path.join(output_folder, 'train', 'annotations'))) + \
+                            len(os.listdir(os.path.join(output_folder, 'test', 'annotations')))
+        if total_annotations == len(annotations):
+            print("The number of XML files in train and test folders matches the total number of XML files in annotations.")
+        else:
+            print("Mismatch in the number of XML files between train/test folders and annotations. Train" \
+            "test split may belong to an old version of the dataset. Try extracting and splitting the dataset again.")
+            
         return
     
     else:
@@ -1012,7 +1022,7 @@ def accuracy(scores, targets, k):
     return correct_total.item() * (100.0 / batch_size)
 
 
-def manage_training_output_file(results_folder, date_of_dataset_used, checkpoint_frequency, lr, iterations):
+def manage_training_output_file(results_folder, date_of_dataset_used):
     """
     This function manages the training output file by creating or appending to it, and writes the training parameters at the top of the file if they do not already exist.
 
@@ -1042,8 +1052,8 @@ def manage_training_output_file(results_folder, date_of_dataset_used, checkpoint
     with open(training_output_file, mode) as f:
         # Write the training parameters at the top of the file if they do not already exist
         if mode == 'a':
-            if f'Checkpoint Frequency: {checkpoint_frequency}' not in content:
-                f.write(f'Checkpoint Frequency: {checkpoint_frequency}\n')
+            if f'Checkpoint Frequency: {checkpoint_freq}' not in content:
+                f.write(f'Checkpoint Frequency: {checkpoint_freq}\n')
             if f'Date of Dataset Used: {date_of_dataset_used}' not in content:
                 f.write(f'Date of Dataset Used: {date_of_dataset_used}\n')
             if f'Learning Rate: {lr}' not in content:
@@ -1052,7 +1062,7 @@ def manage_training_output_file(results_folder, date_of_dataset_used, checkpoint
                 f.write(f'Iterations: {iterations}\n\n')
             
         if mode == 'w':    
-            f.write(f'Checkpoint Frequency: {checkpoint_frequency}\n')
+            f.write(f'Checkpoint Frequency: {checkpoint_freq}\n')
             f.write(f'Date of Dataset Used: {date_of_dataset_used}\n')
             f.write(f'Learning Rate: {lr}\n')
 

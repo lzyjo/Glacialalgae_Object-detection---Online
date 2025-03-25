@@ -1,10 +1,4 @@
 import os
-
-
-
-
-annotations_folder = r'Training_GA_Dataset\20250221\Annotations' # Change this to the correct folder for which files are to be extracted to
-
 import xml.etree.ElementTree as ET
 
 def object_count_for_cells(annotations_folder):
@@ -24,29 +18,3 @@ if __name__ == '__main__':
     annotations_folder = r'Training_GA_Dataset\20250221\Annotations' # Change this to the correct folder for which files are to be extracted to
     number_of_objects = object_count_for_cells(annotations_folder)
     print(f"Number of objects that are cells: {number_of_objects}")
-
-number_of_objects = object_count_for_cells(annotations_folder)
-print(f"Number of objects that are cells: {number_of_objects}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Rename files in a folder
-def rename_files_in_folder(folder_path):
-    files = sorted(os.listdir(folder_path))
-    for count, filename in enumerate(files, start=1):
-        src = os.path.join(folder_path, filename)
-        dst = os.path.join(folder_path, f"{count}{os.path.splitext(filename)[1]}")
-        os.rename(src, dst)
-
-# Example usage
-rename_files_in_folder(r'/path/to/your/folder')

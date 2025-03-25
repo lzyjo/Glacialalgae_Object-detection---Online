@@ -4,6 +4,8 @@ import os
 import pandas as pd
 import subprocess
 from torchvision.transforms import v2 as T
+from datetime import datetime
+
 
 ## Check the current working directory
 cwd = os.getcwd()
@@ -11,41 +13,118 @@ print(f"Current working directory: {cwd}")
 
 
 
-# DATA AUGMENTATION
-from augmentation import *
-
-GA_dataset_path = r'GA_Dataset'
-date_of_dataset_used = '20250221'
-image_dir = r'GA_Dataset\20250221\Images'
-annotation_dir = r'GA_Dataset\20250221\Annotations'
-transformations = T.Compose([
-    T.RandomHorizontalFlip(p=1.0),
-    T.RandomVerticalFlip(p=1.0)])
-
-run_augmentation_pipeline(GA_dataset_path= GA_dataset_path,
-                          date_of_dataset_used= date_of_dataset_used,
-                          image_dir= image_dir,
-                          annotation_dir= annotation_dir,
-                          transformations= transformations,
-                          num_pairs=5)
-
-# RANDOM ROTATION RETURNS ISSUE WITH BOUNDING BOX TRANSFORMATIONS (not correctly rotated in line with image)
-
-
-
-
-# DATASET PREPARATION FOR SPLIT (WITH AUGMENTATION)
-from utils import create_dataset_folder, extract_files
+#CREATE DATASET FOLDER
+from utils import create_dataset_folder
 
 # Create dataset folder because we are combining multiple datasets:
                                                                 # GA_Dataset\20250221
                                                                 # GA_Dataset\20250221_randomhorizontalflip
                                                                 # GA_Dataset\20250221_randomverticalflip
                                                                 # GA_Dataset\20250221_randomrotation
-create_dataset_folder(folder_type='Training', folder_date='20250221')  # Only run if you want to create a new dataset folder!!
+create_dataset_folder(folder_type='no_augmentation', 
+                      folder_date='20250221')  # Only run if you want to create a new dataset folder!!
 
-annotations_folder = r'Training_GA_Dataset\20250221\Annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'Training_GA_Dataset\20250221\Images' # Change this to the correct folder for which files are to be extracted to
+
+# EXTRACT RAW .XMLS AND .TIFS INTO (MASTERLIST) DATASET FOLDER
+from utils import extract_files
+
+
+annotations_folder = r'GA_Dataset\20250318\Annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'GA_Dataset\20250318\Images' # Change this to the correct folder for which files are to be extracted to
+
+## Run only once for each dataset for file extraction
+
+##BLUFF_230724 DATA
+extract_files(date_of_dataset_used= 'Bluff_230724', # Change this to the correct dataset used, FOR REFERENCE ONLY
+                annotations_folder= annotations_folder, 
+                images_folder= images_folder, 
+                images_src_folder=r'Completed annotations/Bluff_230724/Original_Images_Unlabelled_Bluff_230724', # Change this to your source folder path 
+                annotations_src_folder=r'Completed annotations\Bluff_230724') # Change this to your source folder path
+
+##PAM_Surf_220724 DATA
+extract_files(date_of_dataset_used= 'PAM_Surf_220724', # Change this to the correct dataset used, FOR REFERENCE ONLY
+                annotations_folder= annotations_folder, 
+                images_folder= images_folder, 
+                images_src_folder=r'Completed annotations/PAM_Surf_220724/Original_Images_Unlabelled_PAM_Surf_220724', # Change this to your source folder path 
+                annotations_src_folder=r'Completed annotations\PAM_Surf_220724') # Change this to your source folder path
+
+
+
+
+# DATA AUGMENTATION
+from augmentation import *
+
+augmented_dataset_path = r'Data_Augmentation'
+current_date = datetime.now().strftime('%Y%m%d')
+date_of_dataset_used = '20250318'
+image_dir = r'GA_Dataset\20250318\Annotations' #Original annotation folder in GA_Dataset 
+annotation_dir = r'GA_Dataset\20250318\Images' #Original image folder in GA_Dataset
+
+
+
+# Define the transformations to be included + generate all possible pairings
+color_jitter = T.ColorJitter(brightness=(0,1), contrast=(0,1), saturation=(0,1), hue=(0,0.5))
+
+ColourJitter1_params = T.ColorJitter.get_params(
+    color_jitter.brightness, color_jitter.contrast, color_jitter.saturation,
+    color_jitter.hue) 
+ColourJitter2_params = T.ColorJitter.get_params(
+    color_jitter.brightness, color_jitter.contrast, color_jitter.saturation,
+    color_jitter.hue) #must name as such to allow folder name to be created correctly (transformation name in position 0)
+# check with levi how to properly implement get_params
+
+transformations_to_include = [
+    T.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),
+    T.RandomHorizontalFlip(p=0.5),
+    T.RandomVerticalFlip(p=0.5),
+    T.ColorJitter(brightness=ColourJitter1_params[1], 
+                  contrast=ColourJitter1_params[2], 
+                  saturation=ColourJitter1_params[3], 
+                  hue=ColourJitter1_params[4]),
+    T.ColorJitter(brightness=ColourJitter2_params[1],
+                  contrast=ColourJitter2_params[2],
+                  saturation=ColourJitter2_params[3],
+                  hue=ColourJitter2_params[4])
+                  ]
+
+# Generate all possible pairings of transformations
+all_transformations = generate_all_transformations(transformations_to_include)
+number_of_pairings = len(all_transformations)
+
+# Run augmentation pipeline for each combination of transformations
+for i, transformations in enumerate(all_transformations):
+    print(f"Running augmentation pipeline for transformation set {i+1}/{len(all_transformations)}")
+    run_augmentation_pipeline(augmented_dataset_path=augmented_dataset_path,
+                              date_of_dataset_used=date_of_dataset_used,
+                              image_dir=image_dir,
+                              annotation_dir=annotation_dir,
+                              transformations=transformations,
+                              num_pairs=5)
+
+# RANDOM ROTATION RETURNS ISSUE WITH BOUNDING BOX TRANSFORMATIONS (not correctly rotated in line with image)
+
+
+
+
+#CREATE AUGMENTATED DATASET FOLDER
+from utils import create_dataset_folder
+
+# Create dataset folder because we are combining multiple datasets:
+                                                                # GA_Dataset\20250221
+                                                                # GA_Dataset\20250221_randomhorizontalflip
+                                                                # GA_Dataset\20250221_randomverticalflip
+                                                                # GA_Dataset\20250221_randomrotation
+create_dataset_folder(folder_type='augmented_data', 
+                      folder_date='20250221')  # Only run if you want to create a new dataset folder!!
+
+
+
+# EXTRACT AUGMENTED FILES TO TRAINING FOLDER
+from utils import extract_files
+
+
+annotations_folder = r'TrainingData\20250221\Annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'TrainingData\20250221\Images' # Change this to the correct folder for which files are to be extracted to
 
 ## Run only once for each dataset for file extraction
 ##20250221 (not augmented) DATA
@@ -76,27 +155,38 @@ extract_files(date_of_dataset_used= '20250221_randomhorizontalflip_randomvertica
                 images_src_folder=r'GA_Dataset\20250221_randomhorizontalflip_randomverticalflip\Images', # Change this to your source folder path
                 annotations_src_folder=r'GA_Dataset\20250221_randomhorizontalflip_randomverticalflip\Annotations') # Change this to your source folder path
 
+##Data_Augmentation/20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter
+extract_files(date_of_dataset_used= '20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter', # Change this to the correct dataset used, FOR REFERENCE ONLY
+                annotations_folder= annotations_folder,
+                images_folder= images_folder,
+                images_src_folder=r'Data_Augmentation\20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter\Images', # Change this to your source folder path
+                annotations_src_folder=r'Data_Augmentation\20250221_randomhorizontalflip_randomverticalflip_colorjitter_colorjitter\Annotations') # Change this to your source folder path
 
-# Split the dataset into train, test and validation sets
+
+
+
+
+# TRAIN, TEST, VAL SPLIT
 from utils import convert_files_to_list, split_and_copy_files
 images, annotations = convert_files_to_list(images_folder=images_folder, 
                                             annotations_folder=annotations_folder) # Convert to list 
 
-output_folder = r'Training_GA_Dataset\20250221\Split' #output folder forw here split is stored 
+output_folder = r'TrainingData\20250221\Split' #output folder forw here split is stored 
 split_and_copy_files(images, annotations, #create_folders, copy files, then split into test and train
                      output_folder= output_folder) 
 
 
 
+# DATALOADER CREATION
 # Creating datalists for the train, val and test data
 from utils import create_data_lists
 from label_map import label_map # Label map (explicitly defined)
 import shutil
 
-train_annotation_path= r'Training_GA_Dataset\20250221\Split\train\annotations'
-train_image_path= r'Training_GA_Dataset\20250221\Split\train\images'  
-test_annotation_path= r'Training_GA_Dataset\20250221\Split\test\annotations'
-test_image_path= r'Training_GA_Dataset\20250221\Split\test\images'
+train_annotation_path= r'TrainingData\20250221\Split\train\annotations'
+train_image_path= r'TrainingData\20250221\Split\train\images'  
+test_annotation_path= r'TrainingData\20250221\Split\test\annotations'
+test_image_path= r'TrainingData\20250221\Split\test\images'
 date_of_dataset_used='20250221_augmented'
 
 create_data_lists(train_annotation_path=train_annotation_path,
@@ -127,50 +217,46 @@ else:
 
 ## Suppress specific warnings
 import warnings
-from utils import manage_training_output_file
 warnings.filterwarnings("ignore")
 
-# Training the model and saving the results to a .txt file
-data_folder = r'JSON_folder\20250221'
-date_of_dataset_used = '20250221'
-checkpoint = r'Checkpoints\20250221_checkpoint_54.pth.tar'
-checkpoint_frequency = '120'
-lr = '1e-5'
-iterations = '1200'
 
-#set up training output file
+# Adjust hyperparameters in hyperparameters.py now
+from hyperparameters import *
+from utils import manage_training_output_file
+
+
+## Training the model and saving the results to a .txt file
+
+## Set up training output file
+date_of_dataset_used = '20250221_augmented'
 results_folder = r'Results'
 training_output_file = manage_training_output_file(results_folder = results_folder,
-                                                date_of_dataset_used= date_of_dataset_used, 
-                                                checkpoint_frequency = checkpoint_frequency,
-                                                lr =  lr, 
-                                                iterations = iterations)
+                                                date_of_dataset_used= date_of_dataset_used)
 
 
 # Run the training process and save the output
+data_folder = r'JSON_folder\20250221_augmented'
+
 with open(training_output_file, 'a') as f:
     subprocess.run(['python', 'train.py', 
                     '--data_folder', data_folder,
                     '--date_of_dataset_used', date_of_dataset_used,
-                    '--save_dir', r'Checkpoints',
-                    '--checkpoint', checkpoint,
-                    '--checkpoint_frequency', checkpoint_frequency,
-                    '--lr', lr,
-                    '--iterations', iterations], stdout=f)
+                    '--save_dir', r'Checkpoints'], 
+                    stdout=f)
 
 # Run the training process and save the output
 with open(training_output_file, 'a') as f:
-    for line in subprocess.run(['python', 'train.py', 
+    result = subprocess.run(['python', 'train.py', 
                 '--data_folder', data_folder,
                 '--date_of_dataset_used', date_of_dataset_used,
                 '--save_dir', r'Checkpoints',
-                '--checkpoint', checkpoint,
+                '--checkpoint', checkpoint if checkpoint else '',
                 '--checkpoint_frequency', checkpoint_frequency,
                 '--lr', lr,
-                '--iterations', iterations], stdout=f):
+                '--iterations', iterations], capture_output=True, text=True)
+    for line in result.stdout.splitlines():
         if line.startswith('Epoch:'):  # write lines starting with 'Epoch:'
-            f.write(line)
-
+            f.write(line + '\n')
 
 # Return the relative file path of the training output file
 print(f"Training output file saved at: {os.path.relpath(training_output_file)}")
@@ -178,14 +264,11 @@ print(f"Training output file saved at: {os.path.relpath(training_output_file)}")
     
 
 
-
-
-
 # keep only relevant checkpoints
 from utils import keep_checkpoints
 
-training_output_file = 
-date_of_dataset_used = 
+training_output_file =  r'Results\training_results_20250221_augmented.txt'
+date_of_dataset_used = '20250221_augmented'
 keep_checkpoints(checkpoint_dir=r'Checkpoints', 
                  log_file= training_output_file,
                  date_of_dataset_used= date_of_dataset_used)
@@ -194,7 +277,7 @@ keep_checkpoints(checkpoint_dir=r'Checkpoints',
 # EVALUATE MODEL
 
 # Evaluate the model and save the results to a .txt file
-checkpoint = r'Checkpoints\20250219_checkpoint_3.pth.tar'
+checkpoint = r''
 results_folder = r'Results'
 evaluation_output_file = os.path.join(results_folder, f'evaluation_results_{os.path.basename(checkpoint)}.txt')
 

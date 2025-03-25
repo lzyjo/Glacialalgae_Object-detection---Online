@@ -9,6 +9,7 @@ from utils import *
 from dataset import GA_Dataset
 from label_map import *
 import argparse
+from hyperparameters import *
 
 # Parsing command-line arguments
 parser = argparse.ArgumentParser(description='Model training')
@@ -22,21 +23,8 @@ parser.add_argument('--date_of_dataset_used', required=True, type=str, help='dat
 ## save_dir argument
 parser.add_argument('--save_dir', default=r'Checkpoints', type=str, help='folder to save checkpoints')
 
-# checkpoint argument 
-parser.add_argument('--checkpoint', default=None, type=str, help='path to model checkpoint, None if none')
-
-# checkpoint frequency (for saving checkpoints) argument
-parser.add_argument('--checkpoint_frequency', default=1200, type=int, help='checkpoint_frequency for saving checkpoints')
-
-# learning rate argument
-parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
-
-# iteration argument
-parser.add_argument('--iterations', default=120000, type=int, help='number of iterations to train')
-
 # Parse arguments
 args = parser.parse_args()
-
 
 
 # Data parameters
@@ -50,30 +38,12 @@ keep_difficult = True  # use objects considered difficult to detect?
 n_classes = len(label_map)  # number of different types of objects
 device = torch.device("cpu")
 
-# Learning parameters
-checkpoint = args.checkpoint  # path to model checkpoint, None if none
-batch_size = 8  # batch size (CHANGE ACCORDINGLY)
-iterations = args.iterations  # number of iterations to train (CHANGE ACCORDINGLY)
-workers = 4  # number of workers for loading data in the DataLoader
-print_freq = 200  # print training status every __ batches
-lr = args.lr  # learning rate
-decay_lr_at = [80000, 100000]  # decay learning rate after these many iterations
-decay_lr_to = 0.1  # decay learning rate to this fraction of the existing learning rate
-momentum = 0.9  # momentum
-weight_decay = 5e-4  # weight decay
-grad_clip = None  # clip if gradients are exploding, which may happen at larger batch sizes (sometimes at 32) - you will recognize it by a sorting error in the MuliBox loss calculation
-checkpoint_freq = args.checkpoint_frequency  # save checkpoint every __ iterations (CHANGE ACCORDINGLY)
 
 cudnn.benchmark = True
-
 def main():
     """
     Training.
     """
-    global start_epoch, label_map, epoch, checkpoint, decay_lr_at
-    # global is not great for pure function, change later 
-    # use import function as per previously discussed to import the hyperparameters 
-
     # Initialize model or load checkpoint
     if checkpoint is None:
         start_epoch = 0
@@ -91,11 +61,11 @@ def main():
                                     lr=lr, momentum=momentum, weight_decay=weight_decay)
 
     else:
-        checkpoint = torch.load(checkpoint)
-        start_epoch = checkpoint['epoch'] + 1
+        checkpoint_data = torch.load(checkpoint)
+        start_epoch = checkpoint_data['epoch'] + 1
         print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
-        model = checkpoint['model']
-        optimizer = checkpoint['optimizer']
+        model = checkpoint_data['model']
+        optimizer = checkpoint_data['optimizer']
 
     # Move to default device
     model = model.to(device)
@@ -109,17 +79,14 @@ def main():
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
 
-    # Calculate total number of epochs to train and the epochs to decay learning rate at (i.e. convert iterations to epochs)
-    # To convert iterations to epochs, divide iterations by the number of iterations per epoch
-    # The paper trains for 120,000 iterations with a batch size of 32, decays after 80,000 and 100,000 iterations
-    epochs = iterations // (len(train_dataset) // 32)
-    decay_lr_at = [it // (len(train_dataset) // 32) for it in decay_lr_at]
+    epochs = epoch
+    decay_lr_at_epochs = decay_lr_at_epochs
 
     # Epochs
     for epoch in range(start_epoch, epochs):
 
         # Decay learning rate at particular epochs
-        if epoch in decay_lr_at:
+        if epoch in decay_lr_at_epochs:
             adjust_learning_rate(optimizer, decay_lr_to)
 
         # One epoch's training

@@ -14,9 +14,47 @@ from label_map import label_map
 from torchvision import tv_tensors
 from torchvision import io, utils
 from torchvision.transforms.v2 import functional as F
+from itertools import combinations
 
 
-def prepare_data_for_augmentation(GA_dataset_path, 
+
+
+def generate_all_transformations(transformations_to_include):
+    """
+    Generate all possible pairings of transformations.
+    Parameters:
+    transformations_to_include (list): List of transformations to include in the combinations.
+    Returns:
+    list: List of composed transformations.
+    """
+    all_transformations = []
+    for r in range(1, len(transformations_to_include) + 1):
+        for combo in combinations(transformations_to_include, r):
+            all_transformations.append(T.Compose(combo))
+    return all_transformations
+
+if __name__ == "__main__":
+    transformations_to_include = [
+    T.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),
+    T.RandomHorizontalFlip(p=0.5),
+    T.RandomVerticalFlip(p=0.5),
+    T.RandomRotation(degrees=45),
+    T.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0)),
+    T.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
+    T.RandomGrayscale(p=0.2)
+]
+# Define possible transformations
+# transformations_to_include = [
+   # T.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),
+   # T.RandomHorizontalFlip(p=0.5),
+   # T.RandomVerticalFlip(p=0.5),
+   # T.RandomRotation(degrees=45),
+   # T.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0)),
+   # T.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
+   # T.RandomGrayscale(p=0.2)]
+
+
+def prepare_data_for_augmentation(augmented_dataset_path, 
                                   date_of_dataset_used,
                                   image_dir, annotation_dir, 
                                   transformations):
@@ -24,7 +62,7 @@ def prepare_data_for_augmentation(GA_dataset_path,
     Prepares data for augmentation by creating necessary directories, copying
     original images and annotations, and verifying the integrity of the copied files.
     Parameters:
-    GA_dataset_path (str): The path to the Glacial Algae dataset.
+    augmented_dataset_path (str): The path to the augmented GA dataset.
     data_dir (str): The directory where the data is stored.
     date_of_dataset_used (str): The date of the dataset being used.
     image_dir (str): The directory containing the original images.
@@ -43,11 +81,13 @@ def prepare_data_for_augmentation(GA_dataset_path,
     #Create a new folder to store the augmented data
     if isinstance(transformations, T.Compose):
         transform_name = "_".join([type(t).__name__.lower() for t in transformations.transforms])
+            # Check if no transformation is provided, then use the first item on the list (ColourJitter)
     else:
         transform_name = type(transformations).__name__.lower()
 
+
     # Create a new directory to store the augmented data
-    new_data_dir = os.path.join(GA_dataset_path,
+    new_data_dir = os.path.join(augmented_dataset_path,
                                 f"{date_of_dataset_used}_{transform_name}")
     if not os.path.exists(new_data_dir):
         os.makedirs(new_data_dir, exist_ok=True)
@@ -225,14 +265,14 @@ def visual_augmentation_check(original_image_dir, original_annotation_dir,
         plt.show()
 
 
-def run_augmentation_pipeline(GA_dataset_path, date_of_dataset_used, 
+def run_augmentation_pipeline(augmented_dataset_path, date_of_dataset_used, 
                               image_dir, annotation_dir, 
                               transformations, num_pairs=15):
     """
     Runs the entire augmentation pipeline including data preparation, augmentation,
     and visualization of the original and augmented images with bounding boxes.
     Parameters:
-    GA_dataset_path (str): The path to the Glacial Algae dataset.
+    augmented_dataset_path (str): The path to the augmented GA dataset.
     date_of_dataset_used (str): The date of the dataset being used.
     image_dir (str): The directory containing the original images.
     annotation_dir (str): The directory containing the original annotations.
@@ -242,7 +282,7 @@ def run_augmentation_pipeline(GA_dataset_path, date_of_dataset_used,
     None
     """
     # Prepare data for augmentation
-    prepare_data_for_augmentation(GA_dataset_path, date_of_dataset_used, 
+    prepare_data_for_augmentation(augmented_dataset_path, date_of_dataset_used, 
                                   image_dir, annotation_dir, 
                                   transformations)
     print("Data prepared for augmentation.")
@@ -252,7 +292,7 @@ def run_augmentation_pipeline(GA_dataset_path, date_of_dataset_used,
         transform_name = "_".join([type(t).__name__.lower() for t in transformations.transforms])
     else:
         transform_name = type(transformations).__name__.lower()
-    new_data_dir = os.path.join(GA_dataset_path, f"{date_of_dataset_used}_{transform_name}")
+    new_data_dir = os.path.join(augmented_dataset_path, f"{date_of_dataset_used}_{transform_name}")
     new_image_dir = os.path.join(new_data_dir, "Images")
     new_annotation_dir = os.path.join(new_data_dir, "Annotations")
     print(f"New data directory: {new_data_dir}")
@@ -267,3 +307,9 @@ def run_augmentation_pipeline(GA_dataset_path, date_of_dataset_used,
     visual_augmentation_check(image_dir, annotation_dir, 
                               new_image_dir, new_annotation_dir, 
                               num_pairs)
+    
+
+
+
+
+

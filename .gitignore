@@ -3,9 +3,7 @@
 *.xml
 *.tif
 *.json 
-GA_Dataset/
-Completed annotations/
-JSON_folder/
+*.zip
 
 # Ignore cache files
 *.pyc #pycache
