@@ -353,6 +353,7 @@ def parse_annotation(annotation_file, label_map): #FILE not path, because path i
 def create_data_lists(train_annotation_path, train_image_path, test_annotation_path, test_image_path, 
                       label_map, 
                       date_of_dataset_used,
+                      augmentation,
                       JSON_folder=r'JSON_folder'):
     """
     Create lists of images, the bounding boxes and labels of the objects in these images, and save these to file.
@@ -364,7 +365,11 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
     :param output_folder: folder where the JSONs must be saved
     """
 
-    output_folder = os.path.join(JSON_folder, date_of_dataset_used)
+    if augmentation is None:
+        output_folder = os.path.join(JSON_folder, date_of_dataset_used)
+
+    if augmentation == 'augmented_data':
+        output_folder = os.path.join(JSON_folder, date_of_dataset_used + '_Augmented')
 
     if os.path.exists(os.path.join(output_folder, 'TEST_images.json')) \
         and os.path.exists(os.path.join(output_folder, 'TEST_objects.json')) \
@@ -476,6 +481,7 @@ if __name__ == '__main__':
                       test_image_path=r'GA_Dataset\Split\test\images',
                       label_map=label_map,
                       date_of_dataset_used='20250219',
+                      augmentation=None,
                       JSON_folder='./')
 
 def decimate(tensor, m):

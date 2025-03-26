@@ -114,7 +114,8 @@ from utils import create_dataset_folder
                                                                 # 1_GA_Dataset\20250221_randomhorizontalflip
                                                                 # 1_GA_Dataset\20250221_randomverticalflip
                                                                 # 1_GA_Dataset\20250221_randomrotation
-create_dataset_folder(folder_type='augmented_data', 
+create_dataset_folder(folder_type='augmented_data', #augmented_data if augmented dataset used,
+                                                    #None if no augmentation used                            
                       folder_date='20250221')  # Only run if you want to create a new dataset folder!!
 
 
@@ -187,7 +188,9 @@ train_annotation_path= r'3_TrainingData\20250221\Split\train\annotations'
 train_image_path= r'3_TrainingData\20250221\Split\train\images'  
 test_annotation_path= r'3_TrainingData\20250221\Split\test\annotations'
 test_image_path= r'3_TrainingData\20250221\Split\test\images'
-date_of_dataset_used='20250221_augmented'
+date_of_dataset_used='20250221'
+augmentation = 'augmented_data' #augmented_data if augmented dataset used,
+                                #None if no augmentation used                            
 
 create_data_lists(train_annotation_path=train_annotation_path,
                 train_image_path=train_image_path,
@@ -195,6 +198,7 @@ create_data_lists(train_annotation_path=train_annotation_path,
                 test_image_path=test_image_path,
                 label_map=label_map,
                 date_of_dataset_used=date_of_dataset_used,
+                augmentation= augmentation,
                 JSON_folder=r'4_JSON_folder')
 
 
@@ -203,7 +207,7 @@ create_data_lists(train_annotation_path=train_annotation_path,
 
 # Check if model is already trained and present 
 date_of_dataset_used = '20250221'
-date_of_dataset_used = date_of_dataset_used + '_augmentation'
+date_of_dataset_used = date_of_dataset_used + '_augmented' #if augmented dataset used
 model_path = os.path.join(date_of_dataset_used + '_checkpoint_ssd300.pth')
 
 if os.path.exists(model_path):
