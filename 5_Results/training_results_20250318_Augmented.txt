@@ -1,0 +1,5 @@
+Checkpoint Frequency: 120
+Date of Dataset Used: 20250318_Augmented
+Learning Rate: 1e-05
+Iterations: 1200
+
