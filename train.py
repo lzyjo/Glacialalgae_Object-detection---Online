@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 from BCCD_model import SSD300, MultiBoxLoss
 from utils import *
 from dataset import GA_Dataset
-from label_map import *
+from label_map import label_map as label_map_Classifier
+from label_map_OD import label_map as label_map_OD
 import argparse
-from hyperparameters import *
+from Runfile_with_Augmentation import params_dict as params
 
 # Parsing command-line arguments
 parser = argparse.ArgumentParser(description='Model training')
@@ -23,9 +24,12 @@ parser.add_argument('--date_of_dataset_used', required=True, type=str, help='dat
 ## save_dir argument
 parser.add_argument('--save_dir', default=r'Checkpoints', type=str, help='folder to save checkpoints')
 
+## object_detector argument
+parser.add_argument('--object_detector', type=str, choices=['yes', 'no'], required=True, 
+                    help='use object detector label map if "yes", otherwise use classifier label map')
+
 # Parse arguments
 args = parser.parse_args()
-
 
 # Data parameters
 data_folder = args.data_folder
@@ -33,10 +37,31 @@ date_of_dataset_used = args.date_of_dataset_used
 save_dir = args.save_dir
 keep_difficult = True  # use objects considered difficult to detect?
 
-
 # Model parameters
+if args.object_detector == 'yes':
+    label_map = label_map_OD  # use object detector label map
+else:
+    label_map = label_map_Classifier  # use classifier label map
+
 n_classes = len(label_map)  # number of different types of objects
 device = torch.device("cpu")
+
+
+# Hyperparameters
+checkpoint = params.checkpoint
+batch_size = params.batch_size
+iterations = params.iterations
+workers = params.workers
+print_freq = params.print_freq
+lr = params.lr
+decay_lr_at = params.decay_lr_at
+decay_lr_to = params.decay_lr_to
+momentum = params.momentum
+weight_decay = params.weight_decay
+grad_clip = params.grad_clip
+checkpoint_freq = params.checkpoint_freq
+epochs = params.epochs
+decay_lr_at_epochs = params.decay_lr_at_epochs
 
 
 cudnn.benchmark = True

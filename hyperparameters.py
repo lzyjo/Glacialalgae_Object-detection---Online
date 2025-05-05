@@ -1,25 +1,59 @@
-# Learning parameters
+
+class Hyperparameters:
+    def __init__(self,
+                 checkpoint=None,
+                 batch_size=8,
+                 iterations=1200,
+                 workers=4,
+                 print_freq=200,
+                 lr=1e-5,
+                 decay_lr_at=[80000, 100000],
+                 decay_lr_to=0.1,
+                 momentum=0.9,
+                 weight_decay=5e-4,
+                 grad_clip=None,
+                 checkpoint_freq=120,
+                 epochs=1000,
+                 decay_lr_at_epochs=[300, 600]):
+        self.checkpoint = checkpoint
+        self.batch_size = batch_size
+        self.iterations = iterations
+        self.workers = workers
+        self.print_freq = print_freq
+        self.lr = lr
+        self.decay_lr_at = decay_lr_at
+        self.decay_lr_to = decay_lr_to
+        self.momentum = momentum
+        self.weight_decay = weight_decay
+        self.grad_clip = grad_clip
+        self.checkpoint_freq = checkpoint_freq
+        self.epochs = epochs
+        self.decay_lr_at_epochs = decay_lr_at_epochs
 
 
-checkpoint = None  # path to model checkpoint, None if none
-batch_size = 8  # batch size (CHANGE ACCORDINGLY)
-iterations =  1200 # number of iterations to train (CHANGE ACCORDINGLY)
-workers = 4  # number of workers for loading data in the DataLoader
-print_freq = 200  # print training status every __ batches
-lr = 1e-5  # learning rate
-decay_lr_at = [80000, 100000]  # decay learning rate after these many iterations
-decay_lr_to = 0.1  # decay learning rate to this fraction of the existing learning rate
-momentum = 0.9  # momentum
-weight_decay = 5e-4  # weight decay
-grad_clip = None  # clip if gradients are exploding, which may happen at larger batch sizes (sometimes at 32) - you will recognize it by a sorting error in the MuliBox loss calculation
-checkpoint_freq = 120  # save checkpoint every __ iterations (CHANGE ACCORDINGLY)
-epochs = 300
-decay_lr_at_epochs = [150, 250]
 
-# Calculate total number of epochs to train and the epochs to decay learning rate at (i.e. convert iterations to epochs)
-# To convert iterations to epochs, divide iterations by the number of iterations per epoch
-# The paper trains for 120,000 iterations with a batch size of 32, decays after 80,000 and 100,000 iterations
-# epochs = iterations // (len(train_dataset) // 32)
-# decay_lr_at_epochs = [it // (len(train_dataset) // 32) for it in decay_lr_at]
+    def modify_param(self, attribute, direction, rate):
+        rates = {
+            "safe": 1.1,
+            "normal": 1.25,
+            "aggressive": 1.5
+        }
+        if attribute not in vars(self):
+            raise ValueError(f"Invalid attribute. Choose from: {list(vars(self).keys())}")
+        if direction not in ["increase", "decrease"]:
+            raise ValueError("Direction must be 'increase' or 'decrease'.")
+        if rate not in rates:
+            raise ValueError(f"Rate must be one of {list(rates.keys())}.")
 
+        factor = rates[rate]
+        if direction == "decrease":
+            factor = 1 / factor
+
+        current_value = getattr(self, attribute)
+        if isinstance(current_value, (int, float)):
+            setattr(self, attribute, current_value * factor)
+        else:
+            raise TypeError("Only numeric attributes can be modified.")
+
+        return self
 
