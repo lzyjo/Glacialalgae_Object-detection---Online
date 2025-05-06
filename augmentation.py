@@ -20,6 +20,7 @@ from label_map import label_map_classifier # This is the label map for the class
 from label_map import label_map_OD # This is the label map for the object detector
 
 
+
 def generate_all_transformations(transformations_to_include):
     """
     Generate all possible unique pairings of transformations without repetition.
@@ -48,9 +49,6 @@ if __name__ == "__main__":
         T.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
         T.RandomGrayscale(p=0.1)
     ]
-
-
-
 
 
 def define_and_generate_transformations(num_random_augmentations=7, 
@@ -162,7 +160,7 @@ if __name__ == "__main__":
     print(f"Random augmentations: {random_augmentations}")  
 
 
-
+##########################################################################################################################
 
 
 def prepare_data_for_augmentation(augmented_dataset_path, 
@@ -476,6 +474,7 @@ def run_augmentation_pipeline(augmented_dataset_path, date_of_dataset_used,
 
 
 
+##########################################################################################################################
 
 
 def test_test_prepare_data_for_augmentation(augmented_dataset_path, 

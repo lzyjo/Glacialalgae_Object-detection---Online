@@ -24,29 +24,43 @@ from utils import create_dataset_folder
 
 
 create_dataset_folder(base_folder=r'1_GA_Dataset', #base folder where dataset is stored
-                      folder_date='20250318') #date of dataset created
+                      folder_date=None, #if None, current_date = datetime.now().strftime('%Y%m%d')
+                      Augmented=False,
+                      Split=True) #date of dataset created
 
 
 # EXTRACT RAW .XMLS AND .TIFS INTO (MASTERLIST) DATASET FOLDER
-from utils import extract_files
+from utils import extract_files_from_multiple_folders
 
-annotations_folder = r'1_GA_Dataset\20250318\Annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'1_GA_Dataset\20250318\Images' # Change this to the correct folder for which files are to be extracted to
+### Extract files from the augmented dataset folders to the TRAIN split
+source_folders = [
+    r'0_Completed annotations\Bluff_230724 copy',  # Original dataset, not augmented
+    r'0_Completed annotations\PAM_Surf_220724 copy'  # Augmented datasets
+]
 
-## Run only once for each dataset for file extraction
-##BLUFF_230724 DATA
-extract_files(date_of_dataset_used= 'Bluff_230724', # Change this to the correct dataset used, FOR REFERENCE ONLY
-                annotations_folder= annotations_folder, 
-                images_folder= images_folder, 
-                images_src_folder=r'0_Completed annotations/Bluff_230724/Original_Images_Unlabelled_Bluff_230724', # Change this to your source folder path 
-                annotations_src_folder=r'0_Completed annotations\Bluff_230724') # Change this to your source folder path
+annotations_folder = r'1_GA_Dataset/20250506/Annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'1_GA_Dataset/20250506/Images' # Change this to the correct folder for which files are to be extracted to
 
-##PAM_Surf_220724 DATA
-extract_files(date_of_dataset_used= 'PAM_Surf_220724', # Change this to the correct dataset used, FOR REFERENCE ONLY
-                annotations_folder= annotations_folder, 
-                images_folder= images_folder, 
-                images_src_folder=r'0_Completed annotations/PAM_Surf_220724/Original_Images_Unlabelled_PAM_Surf_220724', # Change this to your source folder path 
-                annotations_src_folder=r'0_Completed annotations\PAM_Surf_220724') # Change this to your source folder path
+extract_files_from_multiple_folders(source_folders=source_folders,
+                                    annotations_folder=annotations_folder, images_folder=images_folder,
+                                    include_test=False,
+                                    raw_data=True) # Call the function to extract files from multiple folders
+
+
+
+
+
+
+
+from utils import move_raw_images_to_dataset
+
+move_raw_images_to_dataset(master_folder=r'0_Completed annotations\Bluff_230724 copy\Bluff_230724_Raw_Images',
+                           destination_folder=r'0_Completed annotations\Bluff_230724 copy')
+
+
+
+
+
 
 
 ## LABELS ARE CELL ONLY + NO UNKNOWNS 
@@ -69,7 +83,7 @@ images, annotations = convert_files_to_list(images_folder=images_folder,
 
 
 output_folder = r'1_GA_Dataset\20250318\Split' #output folder forw here split is stored 
-split_and_copy_files(images, annotations, #create_folders, copy files, then split into test and train
+split_and_copy_files(images, annotations, #create_testtrain_folders, copy files, then split into test and train
                      output_folder= output_folder) 
 
 
