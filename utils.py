@@ -9,8 +9,8 @@ import torchvision.transforms.functional as FT
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from datetime import datetime
-from label_map import label_map as label_map_Classifier
-from label_map_OD import label_map as label_map_OD
+from label_map import label_map_Classifier
+from label_map import  label_map_OD
 from hyperparameters import * 
 
 

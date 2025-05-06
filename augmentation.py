@@ -16,8 +16,8 @@ from torchvision.transforms.v2 import functional as F
 from itertools import combinations
 import random
 
-from label_map import label_map as label_map_classifier # This is the label map for the classifier
-from label_map_OD import label_map as label_map_OD # This is the label map for the object detector
+from label_map import label_map_classifier # This is the label map for the classifier
+from label_map import label_map_OD # This is the label map for the object detector
 
 
 def generate_all_transformations(transformations_to_include):

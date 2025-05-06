@@ -4,13 +4,13 @@ import torch.optim
 import torch.utils.data
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from BCCD_model import SSD300, MultiBoxLoss
+from misc.BCCD_model import SSD300, MultiBoxLoss
 from utils import *
 from dataset import GA_Dataset
-from label_map import label_map as label_map_Classifier
-from label_map_OD import label_map as label_map_OD
+from label_map import label_map_Classifier
+from label_map import label_map_OD
 import argparse
-from Runfile_with_Augmentation import params_dict as params
+from runfile import params_dict as params
 
 # Parsing command-line arguments
 parser = argparse.ArgumentParser(description='Model training')
