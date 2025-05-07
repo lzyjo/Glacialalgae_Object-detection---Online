@@ -30,7 +30,7 @@ create_dataset_folder(base_folder=r'1_GA_Dataset', #base folder where dataset is
 
 
 # EXTRACT RAW .XMLS AND .TIFS INTO (MASTERLIST) DATASET FOLDER
-from utils import extract_files_from_multiple_folders
+from utils import extraction_pipeline
 
 ### Extract files from the augmented dataset folders to the TRAIN split
 source_folders = [
@@ -41,10 +41,10 @@ source_folders = [
 annotations_folder = r'1_GA_Dataset/20250506/Annotations' # Change this to the correct folder for which files are to be extracted to
 images_folder = r'1_GA_Dataset/20250506/Images' # Change this to the correct folder for which files are to be extracted to
 
-extract_files_from_multiple_folders(source_folders=source_folders,
-                                    annotations_folder=annotations_folder, images_folder=images_folder,
-                                    include_test=False,
-                                    raw_data=True) # Call the function to extract files from multiple folders
+extraction_pipeline(source_folders=source_folders,
+                    annotations_folder=annotations_folder, images_folder=images_folder,
+                    include_test=False,
+                    raw_data=True) # Call the function to extract files from multiple folders
 
 
 
@@ -141,7 +141,7 @@ create_dataset_folder(base_folder=r'3_TrainingData', #base folder where dataset 
 
 
 # EXTRACT DATA AUGMENTATION FILES TO TRAINING FOLDER
-from utils import extract_files, extract_files_from_multiple_folders
+from utils import extraction_pipeline
 
 ### Extract files from the augmented dataset folders to the TRAIN split
 source_folders = [
@@ -153,8 +153,11 @@ training_data_folder = r'3_TrainingData\20250318_Augmented' # Change this to the
 annotations_folder = r'3_TrainingData\20250318_Augmented\Split\train\annotations' # Change this to the correct folder for which files are to be extracted to
 images_folder = r'3_TrainingData\20250318_Augmented\Split\train\images' # Change this to the correct folder for which files are to be extracted to
 
-extract_files_from_multiple_folders(source_folders, annotations_folder, images_folder,
-                                    include_test=False) # Call the function to extract files from multiple folders
+extraction_pipeline(source_folders=source_folders,
+                    annotations_folder=annotations_folder,
+                    images_folder= images_folder,
+                    include_test=False,
+                    raw_data=False) # Call the function to extract files from multiple folders
 
 
 ### Extract files from dataset folders to the TEST split
@@ -164,7 +167,7 @@ source_folders = [
 annnotations_folder = r'3_TrainingData\20250318_Augmented\Split\test\annotations' # Change this to the correct folder for which files are to be extracted to
 images_folder = r'3_TrainingData\20250318_Augmented\Split\test\images' # Change this to the correct folder for which files are to be extracted to
 
-extract_files_from_multiple_folders(source_folders, annnotations_folder, images_folder,
+extraction_pipeline(source_folders, annnotations_folder, images_folder,
                                     include_test=True) # Call the function to extract files from multiple folders
 
 
