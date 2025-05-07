@@ -10,7 +10,8 @@ from dataset import GA_Dataset
 from label_map import label_map_Classifier
 from label_map import label_map_OD
 import argparse
-from runfile import params_dict as params
+from hyperparameters import *
+
 
 # Parsing command-line arguments
 parser = argparse.ArgumentParser(description='Model training')
@@ -47,24 +48,26 @@ n_classes = len(label_map)  # number of different types of objects
 device = torch.device("cpu")
 
 
-# Hyperparameters
-checkpoint = params.checkpoint
-batch_size = params.batch_size
-iterations = params.iterations
-workers = params.workers
-print_freq = params.print_freq
-lr = params.lr
-decay_lr_at = params.decay_lr_at
-decay_lr_to = params.decay_lr_to
-momentum = params.momentum
-weight_decay = params.weight_decay
-grad_clip = params.grad_clip
-checkpoint_freq = params.checkpoint_freq
-epochs = params.epochs
-decay_lr_at_epochs = params.decay_lr_at_epochs
+"""# Hyperparameters
+hyperparams = Hyperparameters()
 
+checkpoint = hyperparams.checkpoint
+batch_size = hyperparams.batch_size
+iterations = hyperparams.iterations
+workers = hyperparams.workers
+print_freq = hyperparams.print_freq
+lr = hyperparams.lr
+decay_lr_at = hyperparams.decay_lr_at
+decay_lr_to = hyperparams.decay_lr_to
+momentum = hyperparams.momentum
+weight_decay = hyperparams.weight_decay
+grad_clip = hyperparams.grad_clip
+checkpoint_freq = hyperparams.checkpoint_freq
+epoch_num = hyperparams.epochs
+decay_lr_at_epochs = hyperparams.decay_lr_at_epochs"""
 
 cudnn.benchmark = True
+
 def main():
     """
     Training.
@@ -104,14 +107,14 @@ def main():
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
 
-    epochs = epoch
-    decay_lr_at_epochs = decay_lr_at_epochs
+    total_epochs = epoch_num  # total number of epochs to train for
+    decay_lr_at_epoch = decay_lr_at_epochs
 
     # Epochs
-    for epoch in range(start_epoch, epochs):
+    for epoch in range(start_epoch, total_epochs):
 
         # Decay learning rate at particular epochs
-        if epoch in decay_lr_at_epochs:
+        if epoch in decay_lr_at_epoch:
             adjust_learning_rate(optimizer, decay_lr_to)
 
         # One epoch's training
@@ -120,13 +123,13 @@ def main():
               criterion=criterion,
               optimizer=optimizer,
               epoch=epoch,
-              epochs=epochs)
+              total_epochs=total_epochs)
 
         # Save checkpoint
         save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir)
 
 
-def train(train_loader, model, criterion, optimizer, epoch, epochs):
+def train(train_loader, model, criterion, optimizer, epoch, total_epochs):
     """
     One epoch's training.
 
@@ -145,7 +148,7 @@ def train(train_loader, model, criterion, optimizer, epoch, epochs):
     start = time.time()
 
     # Batches
-    for i, (images, boxes, labels, _) in enumerate(tqdm(train_loader, desc=f'Epoch {epoch + 1}/{epochs}', unit='batch')):
+    for i, (images, boxes, labels, _) in enumerate(tqdm(train_loader, desc=f'Epoch {epoch + 1}/{total_epochs}', unit='batch')):
         data_time.update(time.time() - start)
 
         # Move to default device

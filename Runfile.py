@@ -149,6 +149,7 @@ source_folders = [
     r'2_DataAugmentation\20250318'  # Augmented datasets
 ]
 
+training_data_folder = r'3_TrainingData\20250318_Augmented' # Change this to the correct folder for which files are to be extracted to
 annotations_folder = r'3_TrainingData\20250318_Augmented\Split\train\annotations' # Change this to the correct folder for which files are to be extracted to
 images_folder = r'3_TrainingData\20250318_Augmented\Split\train\images' # Change this to the correct folder for which files are to be extracted to
 
@@ -198,7 +199,6 @@ create_data_lists(train_annotation_path=train_annotation_path,
 
 
 
-
 # TRAIN MODEL
 from utils import check_model_trained
 
@@ -208,252 +208,52 @@ check_model_trained(checkpoint_dir=checkpoint_dir,
                     date_of_dataset_used=date_of_dataset_used,
                     augmented=True)  # Check if model is already trained and present
 
-from hyperparameters import Hyperparameters  # Adjust hyperparameters as needed
-# params = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                         #batch_size=8,  # Batch size for training
-                         #iterations=1200,  # Number of iterations for training
-                        # workers=4,  # Number of worker threads for data loading
-                         #print_freq=200,  # Frequency of printing training progress
-                         #lr=1e-5,  # Learning rate for the optimizer
-                         #decay_lr_at=[80000, 100000],  # Iterations at which to decay the learning rate
-                         #decay_lr_to=0.1,  # Factor by which to decay the learning rate
-                        # momentum=0.9,  # Momentum for the optimizer
-                         #weight_decay=5e-4,  # Weight decay for regularization
-                        # grad_clip=None,  # Gradient clipping value (if any)
-                        # checkpoint_freq=120,  # Frequency of saving checkpoints
-                        # epochs=1000,  # Number of epochs for training
-                        # Epochs at which to decay the learning rate
 
 
-# Change: Learning rate
-params_1 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                            lr=1e-6)  # Learning rate for the optimizer
-
-# Change: Number of iterations
-params_2 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                            iterations=1500)
-
-# Change: Number of iterations
-params_3 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                            iterations=2000)
-
-# Change: Batch size
-params_4 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                            batch_size=4)
-
-# Change: Decay learning rate at different iterations
-params_5 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                            decay_lr_at=[600, 1000])
-
-# Change: Decay learning rate at different iterations
-params_6 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                            decay_lr_at=[250, 400])
-
-# Change: Learning rate
-params_7 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                            lr=3e-5)
-
-# Change: Number of iterations
-params_8 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                            iterations=1000)
-
-# Change: Batch size
-params_9 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                            batch_size=20)
-
-# Change: Decay learning rate at different iterations
-params_10 = Hyperparameters(checkpoint=None,  # Path to the checkpoint file (if any)
-                             decay_lr_at=[150, 250])
-
-params_dict = vars(params)  # Convert params to a dictionary for easy access
-# This is then imported into train.py/utils.py
-# and used to set the hyperparameters for training/training output file
-
+from hyperparameters import *
 from utils import manage_training_output_file
 results_folder = r'5_Results'
+date_of_dataset_used = '20250318'  # Date of dataset used for training
 training_output_file = manage_training_output_file(results_folder=results_folder,
                                                    date_of_dataset_used=date_of_dataset_used,
-                                                   params=params_dict,
                                                    augmented=True)  # augmented_data if augmented dataset used
 
 # TRAIN MODEL: Run the training process and save the output
 data_folder = r'4_JSON_folder\20250318_Augmented'
-
-# Print hyperparameters before starting training
-print("Training with the following hyperparameters:")
-for key, value in params_dict.items():
-    print(f"{key}: {value}")
-
-from utils import manage_training_output_file
-date_of_dataset_used = '20250318'
-results_folder = r'5_Results'
-training_output_file = manage_training_output_file(results_folder = results_folder,
-                                                date_of_dataset_used= date_of_dataset_used,
-                                                params=params_dict,
-                                                augmented=True) #augmented_data if augmented dataset used,
-
-
+date_of_dataset_used = '20250318'  # Date of dataset used for training
 
 # Run the training process and save the output
 with open(training_output_file, 'a') as f:
-    result = subprocess.run(['python', 'train.py',
-                             '--data_folder', data_folder,
-                             '--date_of_dataset_used', date_of_dataset_used,
-                             '--save_dir', r'6_Checkpoints',
-                             '--object_detector', 'yes'],
-                            capture_output=True, text=True)
-    for line in result.stdout.splitlines():
-        if line.startswith('Epoch:'):  # write lines starting with 'Epoch:'
-            f.write(line + '\n')
-
-# Return the relative file path of the training output file
-print(f"Training output file saved at: {os.path.relpath(training_output_file)}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TRAIN MODEL
-from utils import check_model_trained
-
-checkpoint_dir = r'6_Checkpoints' # Directory where checkpoints are stored
-date_of_dataset_used = '20250318' # Date of dataset used for training
-check_model_trained(checkpoint_dir= checkpoint_dir,
-                     date_of_dataset_used= date_of_dataset_used,
-                     augmented=True) # Check if model is already trained and present
-
-from hyperparameters import Hyperparameters # Adjust hyperparameterss as needed
-params = Hyperparameters(checkpoint=None, # Path to the checkpoint file (if any)
-                        batch_size=8, # Batch size for training
-                        iterations=1200, # Number of iterations for training
-                        workers=4, # Number of worker threads for data loading
-                        print_freq=200, # Frequency of printing training progress
-                        lr=1e-5, # Learning rate for the optimizer
-                        decay_lr_at=[80000, 100000], # Iterations at which to decay the learning rate
-                        decay_lr_to=0.1, # Factor by which to decay the learning rate
-                        momentum=0.9, # Momentum for the optimizer
-                        weight_decay=5e-4, # Weight decay for regularization
-                        grad_clip=None, # Gradient clipping value (if any)
-                        checkpoint_freq=120, # Frequency of saving checkpoints
-                        epochs=1000, # Number of epochs for training
-                        decay_lr_at_epochs=[300, 600]) # Epochs at which to decay the learning rate
-
-params_dict = {
-    'checkpoint': None,  # Path to the checkpoint file (if any)
-    'batch_size': 8,  # Batch size for training
-    'iterations': 1200,  # Number of iterations for training
-    'workers': 4,  # Number of worker threads for data loading
-    'print_freq': 200,  # Frequency of printing training progress
-    'lr': 1e-5,  # Learning rate for the optimizer
-    'decay_lr_at': [80000, 100000],  # Iterations at which to decay the learning rate
-    'decay_lr_to': 0.1,  # Factor by which to decay the learning rate
-    'momentum': 0.9,  # Momentum for the optimizer
-    'weight_decay': 5e-4,  # Weight decay for regularization
-    'grad_clip': None,  # Gradient clipping value (if any)
-    'checkpoint_freq': 120,  # Frequency of saving checkpoints
-    'epochs': 1000,  # Number of epochs for training
-    'decay_lr_at_epochs': [300, 600]  # Epochs at which to decay the learning rate
-}
-
-from utils import manage_training_output_file
-date_of_dataset_used = '20250318'
-results_folder = r'5_Results'
-training_output_file = manage_training_output_file(results_folder = results_folder,
-                                                date_of_dataset_used= date_of_dataset_used,
-                                                params=params_dict,
-                                                augmented=True) #augmented_data if augmented dataset used,
-
-
-
-# TRAIN MODEL: Run the training process and save the output
-data_folder = r'4_JSON_folder\20250318_Augmented'
-
-
-
-# Print hyperparameters before starting training
-print("Training with the following hyperparameters:")
-for key, value in vars(params).items():
-    print(f"{key}: {value}")
-
-# Run the training process and save the output
-with open(training_output_file, 'a') as f:
-    result = subprocess.run(['python', 'train.py', 
-                '--data_folder', data_folder,
-                '--date_of_dataset_used', date_of_dataset_used,
-                '--save_dir', r'6_Checkpoints',
-                '--object_detector', 'yes'],
-                capture_output=True, text=True)
-    for line in result.stdout.splitlines():
-        if line.startswith('Epoch:'):  # write lines starting with 'Epoch:'
-            f.write(line + '\n')
-
-
-
-
-
-
-
-
-
-
-
-
-with open(training_output_file, 'a') as f:
-    subprocess.run(['python', 'train.py', 
+    try:
+        result = subprocess.run(['python', 'train.py', 
                     '--data_folder', data_folder,
                     '--date_of_dataset_used', date_of_dataset_used,
-                    '--save_dir', r'6_Checkpoints'], 
-                    stdout=f)
+                    '--object_detector', 'yes',
+                    '--save_dir', r'6_Checkpoints'],
+                    capture_output=True, text=True, check=True)
+        if result.stdout:
+            for line in result.stdout.splitlines():
+                if line.startswith('Epoch:'):  # write lines starting with 'Epoch:'
+                    f.write(line + '\n')
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred during training: {e}")
+        if e.stdout:
+            print("Standard Output:")
+            print(e.stdout)
+            f.write("Standard Output:\n")
+            f.write(e.stdout + '\n')
+        if e.stderr:
+            print("Standard Error:")
+            print(e.stderr)
+            f.write("Standard Error:\n")
+            f.write(e.stderr + '\n')
+        f.write(f"Error occurred during training: {e}\n")
 
-# Run the training process and save the output
-with open(training_output_file, 'a') as f:
-    result = subprocess.run(['python', 'train.py', 
-                '--data_folder', data_folder,
-                '--date_of_dataset_used', date_of_dataset_used,
-                '--save_dir', r'6_Checkpoints',
-                '--checkpoint', checkpoint,
-                '--checkpoint_frequency', checkpoint_freq,
-                '--lr', lr,
-                '--iterations', iterations], capture_output=True, text=True)
-    for line in result.stdout.splitlines():
-        if line.startswith('Epoch:'):  # write lines starting with 'Epoch:'
-            f.write(line + '\n')
 
 # Return the relative file path of the training output file
 print(f"Training output file saved at: {os.path.relpath(training_output_file)}")
 
     
-
-
-
-
-
-
-
-
-
 
 
 

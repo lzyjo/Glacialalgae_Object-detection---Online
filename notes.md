@@ -15,3 +15,6 @@ Allowed inputs are lists, numpy arrays, scipy-sparse matrices or pandas datafram
 
 So technically could directly split images (list) and annotations (numpy arrays) if formatted as such? 
 Is it beneficial to do so? Or keep as is, is also fine and efficient? 
+
+3. extraction_pipeline()
+Capacity in the future to make it more modular in terms of image type (.tif vs .jpeg) or annotation type (/xml vs .jason) or even folder names/branch terms to look out for (ROI, VOC, Overlays etc)
