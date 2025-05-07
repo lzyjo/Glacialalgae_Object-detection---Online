@@ -1,23 +1,15 @@
+    print("File extraction completed.")
+    # Print a list of all the date_of_dataset_used at the end
+    print("List of all augmentations used:")
+    augmentations_used = [dataset["date_of_dataset_used"] for dataset in datasets]
+    print(augmentations_used)
 
-import shutil
-import os
-annotations_src_folder =r'1_GA_Dataset\20250318\Split\train\annotations'
-annotations_folder = r'3_TrainingData\20250318_Augmented\Split\train\annotations' # Change this to the correct folder for which files are to be extracted to
+    # Save the list to a .txt file in the training_data_folder
+    output_file = os.path.join(training_data_folder, "augmentations_used.txt")
+    os.makedirs(training_data_folder, exist_ok=True)
+    with open(output_file, "w") as f:
+        for augmentation in augmentations_used:
+            f.write(augmentation + "\n")
+    print(f"List of augmentations saved to {output_file}")
 
 
-# Extract .xml files to annotations folder
-src_file_number = len([f for f in os.listdir(annotations_src_folder) if f.endswith('.xml')])
-counter = len([f for f in os.listdir(annotations_folder) if f.endswith('.xml')]) + 1
-
-
-for root, dirs, files in os.walk(annotations_src_folder):
-for file in files:
-if file.endswith('.xml'):
-    dst_file = os.path.join(annotations_folder, f"{counter}.xml") 
-    if os.path.exists(dst_file):
-        print(f"Error: File {dst_file} already exists. / "
-                f"Source file: {file} / "
-                f"Destination file: {dst_file}")
-        return
-    shutil.copy(os.path.join(root, file), dst_file)
-    counter += 1

@@ -9,19 +9,42 @@ import torchvision.transforms.functional as FT
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from datetime import datetime
-from label_map import label_map as label_map_Classifier
-from label_map_OD import label_map as label_map_OD
+from label_map import label_map_Classifier
+from label_map import  label_map_OD
 from hyperparameters import * 
 
 
 device = torch.device("cpu")
 
-# Color map for bounding boxes of detected objects from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
-#distinct_colors = ['#e6194b', '#3cb44b', '#ffe119', '#0082c8']
-# label_color_map = {k: distinct_colors[i] for i, k in enumerate(label_map.keys())}
 
-# Dataset prep
+####################################################### DATA HANDLING ############################################################
+"""
+The provided code implements a pipeline for dataset preparation, training, and evaluation in object detection.
+It includes functions for creating dataset folders, extracting files, splitting datasets, generating JSON data lists, 
+and managing training processes.
 
+- create_dataset_folder: 
+Creates a structured folder hierarchy for datasets, including subfolders for annotations, images, and optional train/test splits.
+
+- extract_files: 
+Extracts .xml (annotations) and .tif (images) files from source folders to destination folders, ensuring unique filenames.
+
+- move_raw_images_to_dataset:
+Moves raw image subfolders into a destination folder and renames them to raw_images.
+
+- process_raw_data:
+Processes raw data by identifying subfolders containing raw images and annotations, organizing them into a structured format.
+
+- process_standard_data:
+Identifies subfolders containing Images and Annotations in standard datasets and organizes them into a list of dictionaries.
+
+- confirm_and_extract:
+Prompts the user to confirm file extraction and calls extract_files for each dataset.
+
+- extraction_pipeline: 
+Processes multiple source folders and organizes their contents into specified destination folders.
+
+"""
 
 def create_dataset_folder(base_folder='1_GA_Dataset',
                           folder_date=None,
@@ -52,11 +75,12 @@ def create_dataset_folder(base_folder='1_GA_Dataset',
     images_folder = os.path.join(date_folder, 'Images')
 
     # Define train subfolders if augmented
-    split_folder = os.path.join(date_folder, 'Split') if Split else None
-    train_image_folder = os.path.join(split_folder, 'train', 'images') if Split else None
-    train_annotation_folder = os.path.join(split_folder, 'train', 'annotations') if Split else None
-    test_image_folder = os.path.join(split_folder, 'test', 'images') if Split else None
-    test_annotation_folder = os.path.join(split_folder, 'test', 'annotations') if Split else None
+    if Split:
+        split_folder = os.path.join(date_folder, 'Split')
+        train_image_folder = os.path.join(split_folder, 'train', 'images') 
+        train_annotation_folder = os.path.join(split_folder, 'train', 'annotations') 
+        test_image_folder = os.path.join(split_folder, 'test', 'images')
+        test_annotation_folder = os.path.join(split_folder, 'test', 'annotations') 
 
     # Check if the folder already exists
     if os.path.exists(date_folder):
@@ -103,14 +127,9 @@ if __name__ == '__main__':
                            Split=True)  # Set to True if the dataset is split into train/test folders
 
 
-
-
-
-
-
-
-
-def extract_files(date_of_dataset_used, annotations_folder, images_folder, annotations_src_folder, images_src_folder):   # Define source, annotations, and images folders
+def extract_files(date_of_dataset_used, 
+                  annotations_folder, images_folder, 
+                  annotations_src_folder, images_src_folder):   # Define source, annotations, and images folders
     """
     Extracts .xml and .tif files from source folders to specified destination folders, ensuring unique filenames.
     Parameters:
@@ -119,6 +138,7 @@ def extract_files(date_of_dataset_used, annotations_folder, images_folder, annot
     images_folder (str): The destination folder for image (.tif) files.
     annotations_src_folder (str): The source folder containing annotation (.xml) files.
     images_src_folder (str): The source folder containing image (.tif) files.
+
     Functionality:
     - Creates the destination folders if they do not exist.
     - Copies .xml files from the source annotations folder to the destination annotations folder with unique filenames.
@@ -127,7 +147,8 @@ def extract_files(date_of_dataset_used, annotations_folder, images_folder, annot
     - Verifies if the files in the annotations and images folders have matching filenames (excluding extensions).
     - Prints unmatched files if there are discrepancies between the annotations and images folders.
     """
-
+ 
+    # Create destination folders if they do not exist
     if not os.path.exists(annotations_folder):
         os.makedirs(annotations_folder)
     else:
@@ -139,103 +160,120 @@ def extract_files(date_of_dataset_used, annotations_folder, images_folder, annot
     else:
         print(f"Folder {images_folder} already exists.")
 
-    print("-" * 50)  # Add a separator line for better readability
+    print("-" * 20)  # Add a separator line for better readability
 
     # Extract .xml files to annotations folder
-    num_annotations = len([f for f in os.listdir(annotations_src_folder) if f.endswith('.xml')]) 
+    num_annotations = sum(len([f for f in os.listdir(folder) if f.endswith('.xml')]) for folder in annotations_src_folder)
     print(f"Total annotations from {annotations_src_folder}: {num_annotations}")
 
     counter = len([f for f in os.listdir(annotations_folder) if f.endswith('.xml')]) + 1
-    for root, dirs, files in os.walk(annotations_src_folder):
-        for file in files:
-            if file.endswith('.xml'):
-                dst_file = os.path.join(annotations_folder, f"{counter}.xml") 
-                if os.path.exists(dst_file):
-                    print(f"Error: File {dst_file} already exists. / "
-                          f"Source file: {file} / "
-                          f"Destination file: {dst_file}")
-                    return
-                shutil.copy(os.path.join(root, file), dst_file)
-                counter += 1
+    for folder in annotations_src_folder:
+        for root, _, files in os.walk(folder):
+            for file in files:
+                if file.endswith('.xml'):
+                    src_file = os.path.join(root, file)
+                    dst_file = os.path.join(annotations_folder, f"{counter}.xml")
+                    if os.path.exists(dst_file):
+                        print(f"Error: File {dst_file} already exists. / "
+                              f"Source file: {src_file} / "
+                              f"Destination file: {dst_file}")
+                        return
+                    shutil.copy(src_file, dst_file)
+                    counter += 1
 
     num_annotations_moved = len([f for f in os.listdir(annotations_folder) if f.endswith('.xml')]) 
     print(f"Files extracted from {date_of_dataset_used} to {annotations_folder}/ "
           f"Total annotations: {num_annotations_moved}")
 
     # Extract .tif files to images folder
-    num_images = len([f for f in os.listdir(images_src_folder) if f.endswith('.tif')])
+    num_images = sum(len([f for f in os.listdir(folder) if f.endswith('.tif')]) for folder in images_src_folder)
     print(f"Total images from {images_src_folder}: {num_images}")
     
     counter = len([f for f in os.listdir(images_folder) if f.endswith('.tif')]) + 1
-    for root, dirs, files in os.walk(images_src_folder):
-        for file in files:
-            if file.endswith('.tif'):
-                dst_file = os.path.join(images_folder, f"{counter}.tif")
-                if os.path.exists(dst_file):
-                    print(f"Error: File {dst_file} already exists. / "
-                          f"Source file: {file} / "
-                          f"Destination file: {dst_file}")
-                    return
-                shutil.copy(os.path.join(root, file), dst_file)
-                counter += 1
+    for folder in images_src_folder:
+        for root, _, files in os.walk(folder):
+            for file in files:
+                if file.endswith('.tif'):
+                    dst_file = os.path.join(images_folder, f"{counter}.tif")
+                    if os.path.exists(dst_file):
+                        print(f"Error: File {dst_file} already exists. / "
+                              f"Source file: {os.path.join(root, file)} / "
+                              f"Destination file: {dst_file}")
+                        return
+                    shutil.copy(os.path.join(root, file), dst_file)
+                    counter += 1
             
     num_images_moved = len([f for f in os.listdir(images_folder) if f.endswith('.tif')])
     print(f"Files extracted from {date_of_dataset_used} to {images_folder}/"
           f"Total images: {num_images_moved}")
     print("-" * 50)  # Add a separator line for better readability
 
+
+
     if len(annotations_folder) == len(images_folder):
         print("The number of annotation files and image files are the same.")
         print("Number of annotation files:", len(annotations_folder))
         print("Number of image files:", len(images_folder)) 
 
-    # Check if the files in these folders have the same file name (just different extension)
-    files_in_annotations_folder = [f for f in os.listdir(annotations_folder) if f.endswith('.xml')]
-    files_in_images_folder = [f for f in os.listdir(images_folder) if f.endswith('.tif')]
-    files_in_annotations_folder_no_ext = [os.path.splitext(f)[0] for f in files_in_annotations_folder]
-    files_in_images_folders_no_ext = [os.path.splitext(f)[0] for f in files_in_images_folder]
+    def check_file_matching(annotations_folder, images_folder, annotations_src_folder, images_src_folder):
+        """
+        Check if the files in the annotations and images folders have matching file names (different extensions).
+        If not, identify unmatched files in both folders and their source folders.
 
-    if set(files_in_annotations_folder_no_ext) == set(files_in_images_folders_no_ext):
-        print("The files in the annotations and images folders have the same file names (just different extensions).")
-        print("-" * 50)  # Add a separator line for better readability
+        Args:
+            annotations_folder (str): Path to the folder containing annotation (.xml) files.
+            images_folder (str): Path to the folder containing image (.tif) files.
+            annotations_src_folder (str): Path to the source folder containing annotation (.xml) files.
+            images_src_folder (str): Path to the source folder containing image (.tif) files.
 
-    else:
-        unmatched_annotations = set(files_in_annotations_folder_no_ext) - set(files_in_images_folders_no_ext)
-        unmatched_images = set(files_in_images_folders_no_ext) - set(files_in_annotations_folder_no_ext)
+        Returns:
+            None
+        """
+        # Check if the files in these folders have the same file name (just different extension)
+        files_in_annotations_folder = [f for f in os.listdir(annotations_folder) if f.endswith('.xml')]
+        files_in_images_folder = [f for f in os.listdir(images_folder) if f.endswith('.tif')]
+        files_in_annotations_folder_no_ext = [os.path.splitext(f)[0] for f in files_in_annotations_folder]
+        files_in_images_folders_no_ext = [os.path.splitext(f)[0] for f in files_in_images_folder]
+
+        if set(files_in_annotations_folder_no_ext) == set(files_in_images_folders_no_ext):
+            print("The files in the annotations and images folders have the same file names (just different extensions).")
+            print("-" * 50)  # Add a separator line for better readability
+        else:
+            unmatched_annotations = set(files_in_annotations_folder_no_ext) - set(files_in_images_folders_no_ext)
+            unmatched_images = set(files_in_images_folders_no_ext) - set(files_in_annotations_folder_no_ext)
+
+            print("The files in the annotations and images folders do not match.")
+            print("Unmatched annotation files:", unmatched_annotations)
+            print("Unmatched image files:", unmatched_images)
+
+            # Get the list of .xml files in the annotations folder including subfolders
+            xml_files = []
+            for root, dirs, files in os.walk(annotations_src_folder):
+                for file in files:
+                    if file.endswith('.xml'):
+                        xml_files.append(file)
+            xml_files_no_ext = [os.path.splitext(file)[0] for file in xml_files]
+
+            # Get the list of .tif files in the images folder including subfolders
+            tif_files = []
+            for root, dirs, files in os.walk(images_src_folder):
+                for file in files:
+                    if file.endswith('.tif'):
+                        tif_files.append(file)
+            tif_files_no_ext = [os.path.splitext(file)[0] for file in tif_files]
+
+            # Find unmatched files
+            unmatched_annotations = set(xml_files_no_ext) - set(tif_files_no_ext)
+            unmatched_images = set(tif_files_no_ext) - set(xml_files_no_ext)
+
+            # Print the results
+            print(f"The files in the {annotations_src_folder} and {images_src_folder} do not match.")
+            print("Unmatched annotation files:", unmatched_annotations)
+            print("Unmatched image files:", unmatched_images)
+            print("-" * 50)  # Add a separator line for better readability)
+
+    check_file_matching(annotations_folder, images_folder, annotations_src_folder, images_src_folder)
         
-        print("The files in the annotations and images folders do not match.")
-        print("Unmatched annotation files:", unmatched_annotations)
-        print("Unmatched image files:", unmatched_images)
-
-        # Get the list of .xml files in the annotations folder including subfolders
-        xml_files = []
-        for root, dirs, files in os.walk(annotations_src_folder):
-            for file in files:
-                if file.endswith('.xml'):
-                    xml_files.append(file)
-        xml_files_no_ext = [os.path.splitext(file)[0] for file in xml_files]
-
-        # Get the list of .tif files in the images folder including subfolders
-        tif_files = []
-        for root, dirs, files in os.walk(images_src_folder):
-            for file in files:
-                if file.endswith('.tif'):
-                    tif_files.append(file)
-        tif_files_no_ext = [os.path.splitext(file)[0] for file in tif_files]
-
-        # Find unmatched files
-        unmatched_annotations = set(xml_files_no_ext) - set(tif_files_no_ext)
-        unmatched_images = set(tif_files_no_ext) - set(xml_files_no_ext)
-
-        # Print the results
-        print(f"The files in the {annotations_src_folder} and {images_src_folder} do not match.")
-        print("Unmatched annotation files:", unmatched_annotations)
-        print("Unmatched image files:", unmatched_images)
-        print("-" * 50)  # Add a separator line for better readability
-
-
-        
-
 if __name__ == '__main__':
     extract_files(date_of_dataset_used='Bluff_230724',  # Change this to the correct dataset used, FOR REFERENCE ONLY
                     annotations_folder=r'GA_Dataset\20250219\Annotations',  # Change this to the correct folder for which files were extracted 
@@ -245,65 +283,265 @@ if __name__ == '__main__':
                     
 
 
-
-def extract_files_from_multiple_folders(source_folders, annotations_folder, images_folder, include_test=False):
+def move_raw_images_to_dataset(raw_image_folder, destination_folder):
     """
-    Extracts files from multiple source folders and organizes them into specified 
-    annotations and images folders. Each folder in `source_folders` must contain 
-    subdirectories named 'Images' and 'Annotations'. The function processes these 
-    subdirectories, optionally including those containing 'test' in their names.
+    Iterates through each subfolder in a master folder, copies its contents into a corresponding folder
+    in the destination folder, and renames the subfolder to 'raw_images'.
+
     Args:
-        source_folders (list of str): A list of paths to the source folders containing 
-            datasets to be processed.
-        annotations_folder (str): The destination folder where annotation files will 
-            be copied or moved.
-        images_folder (str): The destination folder where image files will be copied 
-            or moved.
-        include_test (bool): Whether to include folders containing 'test' in their names.
-    Returns:
-        None
-    Side Effects:
-        - Prints the details of each dataset being processed, including the dataset 
-            name, source folder for images, and source folder for annotations.
-        - Calls the `extract_files` function for each dataset to handle the actual 
-            file extraction and organization.
-    Notes:
-        - The function assumes that each dataset folder contains subdirectories named 
-            'Images' and 'Annotations' for the respective files.
-        - This function relies on the `extract_files` function to handle the actual 
-            file extraction and organization. Ensure that `extract_files` is defined 
-            and accessible in the codebase.
-    """
-    
-    datasets = []
+    - raw_image_folder (str): Path to the folder containing raw image subfolders to process.
+    - destination_folder (str): Path to the destination folder where subfolders will be copied and renamed.
 
+    Returns:
+    - None
+
+    Side Effects:
+    - Copies subfolders and their contents to the destination folder.
+    - Renames the copied subfolders to 'raw_images'.
+    """
+    for subfolder_name in os.listdir(raw_image_folder):
+        subfolder_path = os.path.join(raw_image_folder, subfolder_name)
+        if not os.path.isdir(subfolder_path):  # Skip if not a directory
+            continue
+
+        # Define the destination subfolder path
+        destination_subfolder = os.path.join(destination_folder, subfolder_name, 'images')
+
+        # Check if the destination subfolder already exists
+        if os.path.exists(destination_subfolder):
+            print(f"Images have already been moved to '{destination_subfolder}', skipping.")
+            continue
+
+        # Create the destination subfolder if it doesn't exist
+        os.makedirs(destination_subfolder, exist_ok=True)
+
+        # Copy all files and subdirectories from the source subfolder to the destination subfolder
+        for item in os.listdir(subfolder_path):
+            source_item = os.path.join(subfolder_path, item)
+            destination_item = os.path.join(destination_subfolder, item)
+            if os.path.isdir(source_item):
+                shutil.copytree(source_item, destination_item, dirs_exist_ok=True)
+            else:
+                shutil.copy2(source_item, destination_item)
+
+        print(f"Copied and renamed subfolder '{subfolder_name}' to '{destination_subfolder}'.")
+    
+    print(f"All subfolders from '{raw_image_folder}' have been copied and renamed to '{destination_subfolder}'.")
+
+
+def process_raw_data(source_folders):
+    """
+    Processes raw data by organizing raw images into the dataset folder and identifying source folders 
+    for images and annotations.
+    This function expects the raw data to be organized in the following format:
+    - Each `source_folder` should contain a subfolder named `Raw_Images` where the raw images are stored.
+    - The function moves the contents of `Raw_Images` to the root of the corresponding `source_folder`.
+    - It then identifies subfolders containing images (folders with "images" in their name, case-insensitive) 
+        and annotations (folders with "voc" in their name, case-insensitive).
+    Args:
+        source_folders (list of str): A list of paths to source folders containing raw data.
+    Returns:
+        list of dict: A list of dictionaries, where each dictionary contains:
+            - "date_of_dataset_used" (str): The name of the dataset folder (typically a date or identifier).
+            - "images_src_folder" (list of str): A list of paths to folders containing image data.
+            - "annotations_src_folder" (list of str): A list of paths to folders containing annotation data.
+    Example:
+        Given the following folder structure:
+        source_folders = [
+            "/path/to/source1",
+            "/path/to/source2"]
+
+        /path/to/source1/
+        ├── Raw_Images/
+        │   ├── img1.tif
+        │   ├── img2.tif
+        ├── Dataset_2023/
+        │   ├── Images/
+        │   ├── VOC_Annotations/
+
+        /path/to/source2/
+        ├── Raw_Images/
+        │   ├── img3.tif
+        │   ├── img4.tif
+        ├── Dataset_2022/
+        │   ├── Images/
+        │   ├── VOC_Annotations/
+
+        The function will return:
+        [
+            {
+                "date_of_dataset_used": "Dataset_2023",
+                "images_src_folder": ["/path/to/source1/Dataset_2023/Images"],
+                "annotations_src_folder": ["/path/to/source1/Dataset_2023/VOC_Annotations"]
+            },
+            {
+                "date_of_dataset_used": "Dataset_2022",
+                "images_src_folder": ["/path/to/source2/Dataset_2022/Images"],
+                "annotations_src_folder": ["/path/to/source2/Dataset_2022/VOC_Annotations"]
+            }"""
+
+    for source in source_folders:
+        raw_image_folder = os.path.join(source, 'Raw_Images')
+        destination_folder = os.path.join(source)
+        move_raw_images_to_dataset(raw_image_folder, destination_folder)
+        print("-" * 50)
+
+    datasets = []
     for source_folder in source_folders:
         for folder_name in os.listdir(source_folder):
-            if (include_test and 'test' in folder_name.lower()) or (not include_test and 'test' not in folder_name.lower()):
-                folder_path = os.path.join(source_folder, folder_name)
-                if os.path.isdir(folder_path):  # Ensure it's a directory
-                    datasets.append({
-                        "date_of_dataset_used": folder_name,
-                        "images_src_folder": os.path.join(folder_path, 'Images'),
-                        "annotations_src_folder": os.path.join(folder_path, 'Annotations')
-                    })
-    print(datasets)
-    print("-" * 50)  # Add a separator line for better readability
+            folder_path = os.path.join(source_folder, folder_name)
+            if not os.path.isdir(folder_path):
+                continue
 
-    # If include_test is True, filter datasets to only include those with 'test' in their names
+            images_src_folder = [
+                os.path.join(folder_path, sub_folder_name)
+                for sub_folder_name in os.listdir(folder_path)
+                if os.path.isdir(os.path.join(folder_path, sub_folder_name)) and 'images' in sub_folder_name.lower()
+            ]
+
+            annotations_src_folder = [
+                os.path.join(folder_path, sub_folder_name)
+                for sub_folder_name in os.listdir(folder_path)
+                if os.path.isdir(os.path.join(folder_path, sub_folder_name)) and 'voc' in sub_folder_name.lower()
+            ]
+
+            datasets.append({
+                "date_of_dataset_used": folder_name,
+                "images_src_folder": images_src_folder,
+                "annotations_src_folder": annotations_src_folder
+            })
+
+    return datasets
+
+
+def process_standard_data(source_folders, 
+                          include_test,
+                          include_augmentation_list=False):
+    """    
+    Processes standard data by identifying source folders for images and annotations.
+    This function scans the provided source folders to locate subfolders containing 
+    image and annotation data. It organizes the data into a list of dictionaries, 
+    each representing a dataset with its associated metadata.
+    Args:
+        source_folders (list of str): A list of paths to the source folders containing 
+            subfolders for datasets. Each subfolder should represent a dataset and 
+            contain 'Images' and 'Annotations' subdirectories.
+        include_test (bool): A flag indicating whether to filter datasets based on 
+            the presence of 'test' and/or 'train' in their names.
+        include_augmentation_list (bool): If True, a list of augmentations used in the dataset will be printed and saved.
+    Returns:
+        list of dict: A list of dictionaries, where each dictionary represents a dataset 
+        with the following keys:
+            - "date_of_dataset_used" (str): The name of the dataset folder.
+            - "images_src_folder" (str): The path to the 'Images' subfolder.
+            - "annotations_src_folder" (str): The path to the 'Annotations' subfolder.
+    Format for standard data:
+        Each dataset folder should have the following structure:
+        <dataset_folder>/
+            Images/
+                <image_files>
+            Annotations/
+                <annotation_files>
+    Notes:
+        - If `include_test` is True, the user will be prompted to specify whether to 
+            include both 'test' and 'train' datasets or only 'test' datasets.
+        - The function filters datasets based on the user's input when `include_test` is True.
+        - If the input for filtering is invalid, an empty list is returned.
+    Example:
+        source_folders = ['/path/to/source1', '/path/to/source2']
+        datasets = process_standard_data(source_folders, include_test=True)
+        """
+
+    datasets = []
+    for source_folder in source_folders:
+        for folder_name in os.listdir(source_folder):
+            folder_path = os.path.join(source_folder, folder_name)
+            if not os.path.isdir(folder_path):
+                continue
+
+            datasets.append({
+                "date_of_dataset_used": folder_name,
+                "images_src_folder": os.path.join(folder_path, 'Images'),
+                "annotations_src_folder": os.path.join(folder_path, 'Annotations')
+            })
+
     if include_test:
-        datasets = [dataset for dataset in datasets if 'test' in dataset['date_of_dataset_used'].lower()]
+        test_filter = input("Include 'test' and 'train' folders or 'test' only? (both/test): ").strip().lower()
+        if test_filter not in ['both', 'test']:
+            print("Invalid input. Please type 'both' or 'test'.")
+            return []
 
-    # Print all source files in individual lines
+        datasets = [
+            dataset for dataset in datasets
+            if 'test' in dataset['date_of_dataset_used'].lower() or
+            (test_filter == 'both' and 'train' in dataset['date_of_dataset_used'].lower())
+        ]
+
+    
+    print("File extraction completed.")
+
+    # If the include_augmentation_list flag is set, process and save a list of augmentations used in the dataset.
+    if include_augmentation_list:
+        print("List of all augmentations used:")
+        augmentations_used = [dataset["date_of_dataset_used"] for dataset in datasets]
+        print(augmentations_used)
+        
+        # Find the folder in source_folders that starts with '2_DataAugmentation'
+        training_data_folder = next(
+            (folder for folder in source_folders if os.path.basename(folder).startswith('2_DataAugmentation')), 
+            None
+        )
+
+        if training_data_folder is None:
+            print("Warning: No folder starting with '2_DataAugmentation' found in source_folders.")
+        else:
+            output_file = os.path.join(training_data_folder, "augmentations_used.txt")
+            os.makedirs(training_data_folder, exist_ok=True)
+            with open(output_file, "w") as f:
+                for augmentation in augmentations_used:
+                    f.write(augmentation + "\n")
+            print(f"List of augmentations saved to {output_file}")
+            return  # Gracefully exit the function if no folder is found
+
+    return datasets
+
+
+
+def confirm_and_extract(datasets):
+    """
+    Prompts the user to confirm whether to proceed with extracting files from the provided datasets.
+    If the user approves, it calls the `extract_files` function for each dataset to perform the extraction.
+    Args:
+        datasets (list of dict): A list of dictionaries where each dictionary contains the following keys:
+            - 'date_of_dataset_used' (str): The date associated with the dataset.
+            - 'images_src_folder' (str): The source folder path for the images.
+            - 'annotations_src_folder' (str): The source folder path for the annotations.
+    Behavior:
+        - Displays dataset details to the user.
+        - Asks the user for confirmation to proceed with file extraction.
+        - If the user inputs 'yes', it calls the `extract_files` function for each dataset, passing the necessary parameters.
+        - If the user inputs 'no', the process is aborted.
+    Dependencies:
+        - This function relies on the `extract_files` function to handle the actual file extraction process.
+          Ensure that `extract_files` is defined and accepts the following parameters:
+            - date_of_dataset_used (str)
+            - annotations_folder (str)
+            - images_folder (str)
+            - images_src_folder (str)
+            - annotations_src_folder (str)
+    Notes:
+        - The variables `annotations_folder` and `images_folder` must be defined in the scope where this function is called.
+        - Input validation ensures the user provides a valid response ('yes' or 'no') before proceeding.
+    """
+
     for dataset in datasets:
         print(f"Dataset: {dataset['date_of_dataset_used']}")
         print(f"Images Source Folder: {dataset['images_src_folder']}")
         print(f"Annotations Source Folder: {dataset['annotations_src_folder']}")
-        print("-" * 50)  # Add a separator line for better readability
+        print("-" * 50)
 
     proceed = input("Do you want to proceed with extracting files? (yes/no): ").strip().lower()
     while proceed not in ['yes', 'no']:
-        print(f"Invalid input: {proceed}")
         print("Invalid input. Please type 'yes' or 'no'.")
         proceed = input("Do you want to proceed with extracting files? (yes/no): ").strip().lower()
 
@@ -319,6 +557,36 @@ def extract_files_from_multiple_folders(source_folders, annotations_folder, imag
             images_src_folder=dataset["images_src_folder"],
             annotations_src_folder=dataset["annotations_src_folder"]
         )
+    
+    print("File extraction completed.")
+
+
+def extraction_pipeline(source_folders, 
+                        annotations_folder, images_folder,
+                        include_test=False, 
+                        raw_data=False):
+    """
+    Extracts files from multiple source folders and organizes them into specified annotations and images folders.
+
+    Args:
+        source_folders (list of str): Paths to source folders containing datasets.
+        annotations_folder (str): Destination folder for annotation files.
+        images_folder (str): Destination folder for image files.
+        include_test (bool): Whether to include folders containing 'test' in their names.
+        raw_data (bool): If True, process raw images and VOC annotations.
+
+    Returns:
+        None
+    """
+    
+    if raw_data:
+        datasets = process_raw_data(source_folders)
+    if not raw_data:
+        datasets = process_standard_data(source_folders, include_test)
+
+    if datasets:
+        confirm_and_extract(datasets)
+    
 
 if __name__ == "__main__":
     # Define the source folders to extract files from
@@ -332,31 +600,47 @@ if __name__ == "__main__":
     images_folder = r'3_TrainingData\20250318_Augmented\Split\train\images'
 
     # Call the function to extract files from multiple folders
-    extract_files_from_multiple_folders(source_folders, annotations_folder, images_folder, include_test=True)
+    extraction_pipeline(
+        source_folders,
+        annotations_folder,
+        images_folder,
+        include_test=True,
+        raw_data=True
+    )
 
 
 
+################################################# TRAIN TEST SPLIT ############################################################
+
+"""
+The provided code implements a pipeline for dataset preparation, training, and evaluation in object detection. 
+It includes functions for splitting datasets, creating folder structures, copying files, parsing annotations, 
+and generating JSON data lists. 
+
+splitting datasets, creating folder structures, copying files, parsing annotations, 
+and generating JSON data lists. 
+
+- convert_files_to_list:
+Converts image and annotation files in specified folders into separate lists of file paths
+
+- create_testtrain_folders: 
+Creates the necessary folder structure for training and testing datasets (e.g., train/test images and annotations)
+
+- copy_files: 
+Copies files (e.g., .tif or .xml) to specified destination folders, ensuring proper naming.
+
+- split_and_copy_files: Splits the dataset into training and testing subsets and organizes them into the appropriate 
+folders using create_testtrain_folders and copy_files. Uses images, annotations generated by convert_files_to_list as this is an
+appropriate format to use for train_test_split function (skicit learn: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html)
+
+Training utilities include checkpoint management, learning rate adjustment, 
+gradient clipping, and metric tracking. Data augmentation techniques like resizing, flipping, and cropping are 
+applied during training. Evaluation utilities include mAP calculation and IoU computation. The modular design ensures
+ flexibility, reusability, and efficient handling of datasets and training processes.
+
+ """
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Train-test split
 
 def convert_files_to_list(images_folder, annotations_folder):
     """
@@ -385,35 +669,23 @@ if __name__ == '__main__':
 
 
 
-def create_folders(output_folder):
+def create_testtrain_folders(output_folder):
     """
     Create necessary folders for train and test datasets.
     """
 
-    train_image_folder = os.path.join(output_folder,  'train', 'images')
-    test_image_folder = os.path.join(output_folder,  'test', 'images')
-    train_annotation_folder = os.path.join(output_folder,  'train', 'annotations')
-    test_annotation_folder = os.path.join(output_folder,  'test', 'annotations')
+    folders = {
+        "train_image_folder": os.path.join(output_folder, 'train', 'images'),
+        "test_image_folder": os.path.join(output_folder, 'test', 'images'),
+        "train_annotation_folder": os.path.join(output_folder, 'train', 'annotations'),
+        "test_annotation_folder": os.path.join(output_folder, 'test', 'annotations')
+    }
 
-    if not os.path.exists(train_image_folder):
-        os.makedirs(train_image_folder)
-    else:
-        print(f"Folder {train_image_folder} already exists.")
-
-    if not os.path.exists(test_image_folder):
-        os.makedirs(test_image_folder)
-    else:
-        print(f"Folder {test_image_folder} already exists.")
-
-    if not os.path.exists(train_annotation_folder):
-        os.makedirs(train_annotation_folder)
-    else:
-        print(f"Folder {train_annotation_folder} already exists")
-    
-    if not os.path.exists(test_annotation_folder):
-        os.makedirs(test_annotation_folder)
-    else:
-        print(f"Folder {test_annotation_folder} already exists.")
+    for folder_name, folder_path in folders.items():
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        else:
+            print(f"Folder {folder_path} already exists.")
         
 
 def copy_files(files, destination_folder, file_extension):
@@ -447,28 +719,23 @@ def split_and_copy_files(images, annotations, output_folder,  test_size=None, ra
     if random_state is None:
         random_state = 42
 
-    if os.path.exists(os.path.join(output_folder,  'train', 'images')) and \
-       os.path.exists(os.path.join(output_folder,   'test', 'images')) and \
-       os.path.exists(os.path.join(output_folder,   'train', 'annotations')) and \
-       os.path.exists(os.path.join(output_folder,   'test', 'annotations')) and \
-        all(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder,   'train', 'images'))) and \
-        all(file.endswith('.tif') for file in os.listdir(os.path.join(output_folder,   'test', 'images'))) and \
-        all(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder,   'train', 'annotations'))) and \
-        all(file.endswith('.xml') for file in os.listdir(os.path.join(output_folder,   'test', 'annotations'))) and \
-        len(os.listdir(os.path.join(output_folder,   'train', 'images'))) > 0 and \
-        len(os.listdir(os.path.join(output_folder,   'test', 'images'))) > 0 and \
-        len(os.listdir(os.path.join(output_folder,   'train', 'annotations'))) > 0 and \
-        len(os.listdir(os.path.join(output_folder,   'test', 'annotations'))) > 0:
+    train_images_path = os.path.join(output_folder, 'train', 'images')
+    test_images_path = os.path.join(output_folder, 'test', 'images')
+    train_annotations_path = os.path.join(output_folder, 'train', 'annotations')
+    test_annotations_path = os.path.join(output_folder, 'test', 'annotations')
+
+    if all(os.path.exists(path) for path in [train_images_path, test_images_path, train_annotations_path, test_annotations_path]) and \
+       all(file.endswith('.tif') for path in [train_images_path, test_images_path] for file in os.listdir(path)) and \
+       all(file.endswith('.xml') for path in [train_annotations_path, test_annotations_path] for file in os.listdir(path)) and \
+       all(len(os.listdir(path)) > 0 for path in [train_images_path, test_images_path, train_annotations_path, test_annotations_path]):
 
         print("Train and test lists already exist. Dataset has been split and contains relevant files.")
 
-        total_annotations = len(os.listdir(os.path.join(output_folder, 'train', 'annotations'))) + \
-                            len(os.listdir(os.path.join(output_folder, 'test', 'annotations')))
+        total_annotations = len(os.listdir(train_annotations_path)) + len(os.listdir(test_annotations_path))
         if total_annotations == len(annotations):
             print("The number of XML files in train and test folders matches the total number of XML files in annotations.")
         else:
-            print("Mismatch in the number of XML files between train/test folders and annotations. Train" \
-            "test split may belong to an old version of the dataset. Try extracting and splitting the dataset again.")
+            print("Mismatch in the number of XML files between train/test folders and annotations. Train-test split may belong to an old version of the dataset. Try extracting and splitting the dataset again.")
             
         return
     
@@ -476,7 +743,7 @@ def split_and_copy_files(images, annotations, output_folder,  test_size=None, ra
         train_images, test_images, train_annotations, test_annotations = train_test_split(
         images, annotations, test_size=test_size, random_state=random_state)
 
-        create_folders(output_folder)
+        create_testtrain_folders(output_folder)
         copy_files(train_images, os.path.join(output_folder,   'train', 'images'), file_extension='.tif')
         copy_files(test_images, os.path.join(output_folder,   'test', 'images'), file_extension= '.tif')
         copy_files(train_annotations, os.path.join(output_folder,   'train', 'annotations'), file_extension='.xml')
@@ -490,7 +757,19 @@ if __name__ == '__main__':
 
 
 
-# Datalist creation
+
+
+
+############################################ PARSING AND DATALIST/DATALOADER CREATION ####################################################
+
+"""
+The provided code implements a pipeline for parsing annotations and creating JSON data lists for object detection tasks. 
+It includes functions for extracting bounding box data, labels, and difficulties from XML files and organizing them into structured 
+JSON files.
+
+"""
+
+
 
 def parse_annotation(annotation_file, label_map): #FILE not path, because path is to folder, and path is to indifidual file
     """
@@ -504,7 +783,6 @@ def parse_annotation(annotation_file, label_map): #FILE not path, because path i
             - 'labels' (list of int): Corresponding labels for each bounding box.
             - 'difficulties' (list of int): Difficulty levels for each object (0 or 1).
     """
-#annotation_file is created in create_data_lists()
 
     tree = ET.parse(annotation_file)
     root = tree.getroot()
@@ -536,7 +814,117 @@ def parse_annotation(annotation_file, label_map): #FILE not path, because path i
 
 
 
-def create_data_lists(train_annotation_path, train_image_path, test_annotation_path, test_image_path, 
+def create_data_lists(train_annotation_path, train_image_path, test_annotation_path, test_image_path,
+                      date_of_dataset_used,
+                      augmentation,
+                      object_detector,
+                      JSON_folder=r'JSON_folder'):
+    """
+    Create lists of images, the bounding boxes and labels of the objects in these images, and save these to file.
+
+    :param train_annotation_path: path to the training annotations folder
+    :param train_image_path: path to the training images folder
+    :param test_annotation_path: path to the testing annotations folder
+    :param test_image_path: path to the testing images folder
+    :param object_detector: boolean, if True use label_map_OD, if False use label_map_Classifier
+    :param date_of_dataset_used: date string for dataset identification
+    :param augmentation: augmentation type, if any
+    :param JSON_folder: folder where the JSONs must be saved
+    """
+
+    # Select the appropriate label map
+    label_map = label_map_OD if object_detector else label_map_Classifier
+
+    # Determine the output folder based on augmentation
+    if augmentation is None:
+        output_folder = os.path.join(JSON_folder, date_of_dataset_used)
+    elif augmentation == 'augmented_data':
+        output_folder = os.path.join(JSON_folder, f"{date_of_dataset_used}_Augmented")
+
+    # Check if data lists already exist
+    if all(os.path.exists(os.path.join(output_folder, file)) for file in 
+           ['TEST_images.json', 'TEST_objects.json', 'TRAIN_images.json', 'TRAIN_objects.json', 'label_map.json']):
+        print('Datalists already created')
+        return
+
+    # Ensure the output folder exists
+    os.makedirs(output_folder, exist_ok=True)
+
+    def process_data(image_path, annotation_path, label_map, output_image_file, output_object_file):
+        """
+        Process images and annotations to create data lists.
+
+        :param image_path: Path to the images folder
+        :param annotation_path: Path to the annotations folder
+        :param label_map: Label map to use
+        :param output_image_file: Output JSON file for image paths
+        :param output_object_file: Output JSON file for objects
+        """
+        images = []
+        objects = []
+        n_objects = 0
+
+        # Get image IDs
+        image_files = [file for file in os.listdir(image_path) if file.endswith('.tif')]
+        ids = [os.path.splitext(file)[0] for file in image_files]
+        print(f"Found {len(ids)} images.")
+
+        for id in ids:
+            annotation_file = os.path.join(annotation_path, f"{id}.xml")
+
+            if not os.path.isfile(annotation_file):
+                print(f"Annotation file {annotation_file} does not exist, skipping.")
+                continue
+
+            # Parse the annotation file
+            parsed_objects = parse_annotation(annotation_file, label_map)
+            if not parsed_objects['boxes']:
+                print(f"No objects found in {annotation_file}, skipping.")
+                continue
+
+            n_objects += len(parsed_objects['boxes'])
+            objects.append(parsed_objects)
+            images.append(os.path.join(image_path, f"{id}.tif"))
+            print(f"Processed {annotation_file}, found {len(parsed_objects['boxes'])} objects.")
+
+        # Save to JSON files
+        with open(output_image_file, 'w') as j:
+            json.dump(images, j)
+        with open(output_object_file, 'w') as j:
+            json.dump(objects, j)
+
+        print(f"\nProcessed {len(images)} images containing a total of {n_objects} objects. "
+              f"Files saved to {os.path.abspath(output_folder)}.")
+
+    # Process training data
+    process_data(train_image_path, train_annotation_path, label_map,
+                 os.path.join(output_folder, 'TRAIN_images.json'),
+                 os.path.join(output_folder, 'TRAIN_objects.json'))
+
+    # Save the label map
+    with open(os.path.join(output_folder, 'label_map.json'), 'w') as j:
+        json.dump(label_map, j)
+
+    # Process testing data
+    process_data(test_image_path, test_annotation_path, label_map,
+                 os.path.join(output_folder, 'TEST_images.json'),
+                 os.path.join(output_folder, 'TEST_objects.json'))
+
+
+if __name__ == '__main__':
+    """Change paths and output folder accordingly to your setup"""
+    create_data_lists(train_annotation_path=r'GA_Dataset\Split\train\annotations',
+                      train_image_path=r'GA_Dataset\Split\train\images',
+                      test_annotation_path=r'GA_Dataset\Split\test\annotations',
+                      test_image_path=r'GA_Dataset\Split\test\images',
+                      object_detector=True,
+                      date_of_dataset_used='20250219',
+                      augmentation=None,
+                      JSON_folder='./')
+
+
+
+def create_datalists_old(train_annotation_path, train_image_path, test_annotation_path, test_image_path, 
                       object_detector, 
                       date_of_dataset_used,
                       augmentation,
@@ -555,7 +943,9 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
     """
 
     label_map = label_map_OD if object_detector else label_map_Classifier
-
+    
+    if augmentation is None:
+        output_folder = os.path.join(JSON_folder, date_of_dataset_used)
     if augmentation is None:
         output_folder = os.path.join(JSON_folder, date_of_dataset_used)
 
@@ -678,13 +1068,7 @@ if __name__ == '__main__':
 
 
 
-
-
-
-
-
-
-
+######################################################### MODEL TRAINING ###########################################################
 
 def check_model_trained(checkpoint_dir='6_Checkpoints',
                         date_of_dataset_used='20250318', 
@@ -697,20 +1081,19 @@ def check_model_trained(checkpoint_dir='6_Checkpoints',
         augmented (bool): Whether the dataset is augmented. Defaults to False.
         checkpoint_dir (str): Directory where checkpoints are stored. Defaults to '6_Checkpoints'.
 
-    Returns:
-        bool: True if the model checkpoint exists, False otherwise.
     """
-    if augmented:
-        date_of_dataset_used += '_Augmented'
-    
-    model_files = [f for f in os.listdir(checkpoint_dir) if date_of_dataset_used in f]
-    if augmented:
-        model_files = [f for f in model_files if 'Augmented' in f]
+    # Get the list of all files in the checkpoint directory
+    if augmented: # Check if the dataset is augmented
+        date_of_dataset_used += '_Augmented' # Append '_Augmented' to the date string if the dataset is augmented
+
+    model_files = [f for f in os.listdir(checkpoint_dir) if date_of_dataset_used in f] # Filter the model files based on the updated date_of_dataset_used
+        
     if model_files:
         model_path = os.path.join(checkpoint_dir, model_files[0])
         print(f'Model may be present. Please check: {model_path}')
+        print(f'Model checkpoint found at: {model_path}')
     else:
-        print(f'Model for date: {date_of_dataset_used} has not been trained or is not present in {checkpoint_dir}')
+        print(f'No model checkpoint found for date: {date_of_dataset_used} in {checkpoint_dir}')
 
 if __name__ == '__main__':
     check_model_trained(checkpoint_dir='6_Checkpoints',
@@ -719,6 +1102,156 @@ if __name__ == '__main__':
 
 
 
+def manage_training_output_file(results_folder, date_of_dataset_used,
+                                augmented=False,
+                                object_detector=False):
+    """
+    Manage the training output file by creating or appending to it, and write training parameters if not already present.
+
+    Args:
+        results_folder (str): Folder to store results.
+        date_of_dataset_used (str): Date of the dataset used for training.
+        augmented (bool): Whether the dataset is augmented.
+
+    Returns:
+        str: Path to the training output file.
+    """
+    if augmented:
+        date_of_dataset_used += '_Augmented'
+        augmentations_file = os.path.join('3_TrainingData', date_of_dataset_used, 'augmentations_used.txt')
+        if not os.path.exists(augmentations_file):
+            print(f"Error: The file {augmentations_file} does not exist.")
+            return
+
+    training_output_file = os.path.join(results_folder, f'training_results_{date_of_dataset_used}.txt')
+    os.makedirs(results_folder, exist_ok=True)  # Ensure the results folder exists
+
+    if object_detector:
+        object_detector = 'Object Detector'
+    else:
+        object_detector = 'Classifier'
+    
+    if augmented:
+        with open(augmentations_file, 'r') as f:
+            augmentation = f.read().strip().split('\n')
+    else:
+        augmentation = None
+
+    params = [
+        f'Checkpoint: {checkpoint}',
+        f'Batch Size: {batch_size}',
+        f'Iterations: {iterations}',
+        f'Workers: {workers}',
+        f'Print Frequency: {print_freq}',
+        f'Learning Rate: {lr}',
+        f'Decay Learning Rate At: {decay_lr_at}',
+        f'Decay Learning Rate To: {decay_lr_to}',
+        f'Momentum: {momentum}',
+        f'Weight Decay: {weight_decay}',
+        f'Gradient Clipping: {grad_clip}',
+        f'Checkpoint Frequency: {checkpoint_freq}',
+        f'epoch_num: {epoch_num}',
+        f'Decay Learning Rate At Epochs: {decay_lr_at_epochs}',
+        '-' * 50,  # Separator
+        f'Number of Epochs: {epoch_num}',
+        f'Date of Dataset Used: {date_of_dataset_used}',
+        f'Augmentation: {augmentation}',
+        f'Object Detector: {object_detector}'
+    ]
+
+    if os.path.exists(training_output_file):
+        with open(training_output_file, 'r') as f:
+            content = f.readlines()
+        content = [line.strip() for line in content if line.strip()]
+
+        # Ensure params are written in the same order and not added at the end
+        updated_content = []
+        for param in params:
+            if param not in content:
+                updated_content.append(param)
+            else:
+                updated_content.append(content[content.index(param)])
+    else:
+        updated_content = params
+
+    with open(training_output_file, 'w') as f:
+        f.write('\n'.join(updated_content) + '\n\n')
+
+    return training_output_file
+
+
+def save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir):
+    """
+    Save model checkpoint.
+
+    :param epoch: epoch number
+    :param model: model
+    :param optimizer: optimizer
+    :param save_dir: directory where the checkpoint will be saved
+    """
+    state = {'epoch': epoch,
+             'model': model,
+             'optimizer': optimizer}
+    filename = os.path.join(save_dir, f'{date_of_dataset_used}_checkpoint_{epoch}.pth.tar')
+    
+    torch.save(state, filename)
+
+
+def keep_checkpoints(checkpoint_dir, log_file, date_of_dataset_used):
+    """
+    Keeps only the checkpoints corresponding to the last epoch and the epoch with the lowest loss.
+    Args:
+        checkpoint_dir (str): Directory where checkpoint files are stored.
+        log_file (str): Path to the log file containing epoch loss information.
+        date_of_dataset_used (str): Date string used to identify relevant checkpoint files.
+    Returns:
+        None
+    This function reads the log file to find the epoch with the lowest loss and the last epoch.
+    It then removes all checkpoint files in the specified directory except for those corresponding
+    to the last epoch and the epoch with the lowest loss.
+    """
+    # Read the log file to find the epoch with the lowest loss
+    with open(log_file, 'r') as f:
+        lines = f.readlines()[8:]
+    
+    epoch_losses = {}
+    for line in lines:
+        if "Epoch" in line and "Loss" in line:
+            parts = line.split()
+            # Extract the epoch number from the format "Epoch: [52][0/17]"
+            epoch_str = parts[1] # Extract the epoch number from the format "Epoch: [52][0/17]"
+            epoch_str = epoch_str[:-6]  # Remove the last 6 characters
+            epoch = int(epoch_str.strip('[]'))
+            # Extract the loss value from the format "Loss: 0.000"
+            loss_str = parts[11]
+            loss = float(loss_str)
+            # Store the loss value for this epoch
+            epoch_losses[epoch] = loss 
+    
+    if not epoch_losses:
+        print("No epoch loss information found in log file.")
+        return
+    
+    lowest_loss_epoch = min(epoch_losses, key=epoch_losses.get)
+    print(f"Lowest loss epoch: {lowest_loss_epoch} with loss: {epoch_losses[lowest_loss_epoch]}")
+
+    # Get the last epoch
+    last_epoch = max(epoch_losses.keys())
+    print(f"Last epoch: {last_epoch}")
+
+    # Remove all checkpoints except the last epoch and the lowest loss epoch
+    for filename in os.listdir(checkpoint_dir):
+        if date_of_dataset_used not in filename:
+            continue
+
+        epoch_num = int(filename.split('_')[-1].split('.')[0])
+
+        if epoch_num != last_epoch and epoch_num != lowest_loss_epoch:
+            os.remove(os.path.join(checkpoint_dir, filename))
+            print(f"Removed checkpoint: {filename}")
+
+
+######################################################### OTHERS ###########################################################
 
 
 
@@ -1266,130 +1799,6 @@ def accuracy(scores, targets, k):
     return correct_total.item() * (100.0 / batch_size)
 
 
-def manage_training_output_file(results_folder, 
-                                date_of_dataset_used,
-                                params, 
-                                augmented=False):
-    """
-    This function manages the training output file by creating or appending to it, and writes the training parameters at the top of the file if they do not already exist.
-
-    Args:
-        results_folder (str): The folder where the results will be stored.
-        date_of_dataset_used (str): The date of the dataset used for training.
-        augmentation (bool): Whether the dataset is augmented.
-
-    Returns:
-        str: The path to the training output file.
-    """
-
-    # Hyperparameters
-    params = Hyperparameters
-
-    if augmented:
-        date_of_dataset_used += '_Augmented'
-
-    training_output_file = os.path.join(results_folder, 
-                                        f'training_results_{date_of_dataset_used}.txt')
-    
-    if os.path.exists(training_output_file):
-        with open(training_output_file, 'r') as read_file:
-            content = read_file.read()
-        mode = 'a'  # Append mode
-    else:
-        os.makedirs(results_folder, exist_ok=True)  # Ensure the results folder exists
-        content = ''
-        mode = 'w'  # Write mode
-        
-    with open(training_output_file, mode) as f:
-        # Write the training parameters at the top of the file if they do not already exist
-        if mode == 'a':
-            if f'Checkpoint Frequency: {checkpoint_freq}' not in content:
-                f.write(f'Checkpoint Frequency: {checkpoint_freq}\n')
-            if f'Date of Dataset Used: {date_of_dataset_used}' not in content:
-                f.write(f'Date of Dataset Used: {date_of_dataset_used}\n')
-            if f'Learning Rate: {lr}' not in content:
-                f.write(f'Learning Rate: {lr}\n')
-            if f'Iterations: {iterations}' not in content:
-                f.write(f'Iterations: {iterations}\n\n')
-            
-        if mode == 'w':    
-            f.write(f'Checkpoint Frequency: {checkpoint_freq}\n')
-            f.write(f'Date of Dataset Used: {date_of_dataset_used}\n')
-            f.write(f'Learning Rate: {lr}\n')
-            f.write(f'Iterations: {iterations}\n')
-
-    return training_output_file
-
-
-def save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir):
-    """
-    Save model checkpoint.
-
-    :param epoch: epoch number
-    :param model: model
-    :param optimizer: optimizer
-    :param save_dir: directory where the checkpoint will be saved
-    """
-    state = {'epoch': epoch,
-             'model': model,
-             'optimizer': optimizer}
-    filename = os.path.join(save_dir, f'{date_of_dataset_used}_checkpoint_{epoch}.pth.tar')
-    
-    torch.save(state, filename)
-
-
-def keep_checkpoints(checkpoint_dir, log_file, date_of_dataset_used):
-    """
-    Keeps only the checkpoints corresponding to the last epoch and the epoch with the lowest loss.
-    Args:
-        checkpoint_dir (str): Directory where checkpoint files are stored.
-        log_file (str): Path to the log file containing epoch loss information.
-        date_of_dataset_used (str): Date string used to identify relevant checkpoint files.
-    Returns:
-        None
-    This function reads the log file to find the epoch with the lowest loss and the last epoch.
-    It then removes all checkpoint files in the specified directory except for those corresponding
-    to the last epoch and the epoch with the lowest loss.
-    """
-    # Read the log file to find the epoch with the lowest loss
-    with open(log_file, 'r') as f:
-        lines = f.readlines()[8:]
-    
-    epoch_losses = {}
-    for line in lines:
-        if "Epoch" in line and "Loss" in line:
-            parts = line.split()
-            # Extract the epoch number from the format "Epoch: [52][0/17]"
-            epoch_str = parts[1] # Extract the epoch number from the format "Epoch: [52][0/17]"
-            epoch_str = epoch_str[:-6]  # Remove the last 6 characters
-            epoch = int(epoch_str.strip('[]'))
-            # Extract the loss value from the format "Loss: 0.000"
-            loss_str = parts[11]
-            loss = float(loss_str)
-            # Store the loss value for this epoch
-            epoch_losses[epoch] = loss 
-    
-    if not epoch_losses:
-        print("No epoch loss information found in log file.")
-        return
-    
-    lowest_loss_epoch = min(epoch_losses, key=epoch_losses.get)
-    print(f"Lowest loss epoch: {lowest_loss_epoch} with loss: {epoch_losses[lowest_loss_epoch]}")
-
-    # Get the last epoch
-    last_epoch = max(epoch_losses.keys())
-    print(f"Last epoch: {last_epoch}")
-
-    # Remove all checkpoints except the last epoch and the lowest loss epoch
-    for filename in os.listdir(checkpoint_dir):
-        if date_of_dataset_used not in filename:
-            continue
-
-        epoch_num = int(filename.split('_')[-1].split('.')[0])
-
-        if epoch_num != last_epoch and epoch_num != lowest_loss_epoch:
-            os.remove(os.path.join(checkpoint_dir, filename))
-            print(f"Removed checkpoint: {filename}")
 
 
 class AverageMeter(object):
