@@ -17,4 +17,12 @@ So technically could directly split images (list) and annotations (numpy arrays)
 Is it beneficial to do so? Or keep as is, is also fine and efficient? 
 
 3. extraction_pipeline()
+<<<<<<< Updated upstream
 Capacity in the future to make it more modular in terms of image type (.tif vs .jpeg) or annotation type (/xml vs .jason) or even folder names/branch terms to look out for (ROI, VOC, Overlays etc)
+=======
+Capacity in the future to make it more modular in terms of image type (.tif vs .jpeg) or annotation type (/xml vs .jason) or even folder names/branch terms to look out for (ROI, VOC, Overlays etc)
+
+
+4. python debug console
+read u aout it... may be able to use... may be able to save lots of time 
+>>>>>>> Stashed changes
