@@ -94,10 +94,9 @@ split_and_copy_files(images, annotations, #create_testtrain_folders, copy files,
 
 
 # DATA AUGMENTATION
-from augmentation import *
+from augmentation import define_and_generate_transformations, run_augmentation_pipeline
 
-
-random_augmentations = define_and_generate_transformations(num_random_augmentations=1, # Number of random augmentations to generate
+random_augmentations = define_and_generate_transformations(num_random_augmentations=7, # Number of random augmentations to generate
                                                 include_color_jitter=True, #True if want to include color jitter, False if not
                                                 include_horizontal_flip=True, ##True if want to include horizontal flip, False if not
                                                 include_vertical_flip=True, ##True if want to include vertical flip, False if not
@@ -114,7 +113,7 @@ run_augmentation_pipeline(augmented_dataset_path=augmented_dataset_path,
                             image_dir=image_dir,
                             annotation_dir=annotation_dir,
                             augmentation=random_augmentations,  # List of transformations to apply
-                            num_pairs=5,  # Number of pairs to generate for each transformation
+                            num_pairs=2,  # Number of pairs to generate for each transformation
                             object_detector=True)  # True if using object detector, False if not
 
 
@@ -135,6 +134,7 @@ from utils import create_dataset_folder
 
 create_dataset_folder(base_folder=r'3_TrainingData', #base folder where dataset is stored
                       folder_date='20250318', #date of dataset created
+                      Split=True, #True if want to split the dataset into train/test/val, False if not
                       Augmented=True) 
 
 
@@ -153,11 +153,14 @@ training_data_folder = r'3_TrainingData\20250318_Augmented' # Change this to the
 annotations_folder = r'3_TrainingData\20250318_Augmented\Split\train\annotations' # Change this to the correct folder for which files are to be extracted to
 images_folder = r'3_TrainingData\20250318_Augmented\Split\train\images' # Change this to the correct folder for which files are to be extracted to
 
-extraction_pipeline(source_folders=source_folders,
-                    annotations_folder=annotations_folder,
-                    images_folder= images_folder,
-                    include_test=False,
-                    raw_data=False) # Call the function to extract files from multiple folders
+
+# For train split, include_test = False, because we are not including test data in the training data
+extraction_pipeline(source_folders=source_folders, # Source to extract from
+                    annotations_folder=annotations_folder, # Destination for annotations
+                    images_folder=images_folder, # Destination for images
+                    include_test=False, # For train split, include_test = False because we are not including test data in the training data
+                    raw_data=False, # For train split, raw_data = False because we are using the augmented data
+                    include_augmentation_list=True) # For train split, include_augmentation_list = True because we are including the augmentation list (using augmented data)
 
 
 ### Extract files from dataset folders to the TEST split
@@ -167,8 +170,12 @@ source_folders = [
 annnotations_folder = r'3_TrainingData\20250318_Augmented\Split\test\annotations' # Change this to the correct folder for which files are to be extracted to
 images_folder = r'3_TrainingData\20250318_Augmented\Split\test\images' # Change this to the correct folder for which files are to be extracted to
 
-extraction_pipeline(source_folders, annnotations_folder, images_folder,
-                                    include_test=True) # Call the function to extract files from multiple folders
+extraction_pipeline(source_folders, 
+                    annnotations_folder, images_folder,
+                    include_test=True, # For test split, include_test = True, because we are including test data 
+                    raw_data=False, # For test split, raw_data = True if we are extracting from original format (raw from ImageJ), 
+                                                                # False if we are extracting from test split in the dataset folder (.tifs already moved)
+                    include_augmentation_list=False) # For test split, include_augmentation_list = False, because we do not need to include the augmentation list (using raw data)
 
 
 
@@ -188,8 +195,6 @@ train_image_path= r'3_TrainingData\20250318_Augmented\Split\train\images'
 test_annotation_path= r'3_TrainingData\20250318_Augmented\Split\test\annotations'
 test_image_path= r'3_TrainingData\20250318_Augmented\Split\test\images'
 date_of_dataset_used='20250318'
-augmentation = 'augmented_data' #augmented_data if augmented dataset used,
-                                #None if no augmentation used                            
 
 create_data_lists(train_annotation_path=train_annotation_path,
                 train_image_path=train_image_path,
@@ -197,7 +202,7 @@ create_data_lists(train_annotation_path=train_annotation_path,
                 test_image_path=test_image_path,
                 object_detector=True, #True if using object detector, False if not
                 date_of_dataset_used=date_of_dataset_used,
-                augmentation= augmentation,
+                augmented=True,
                 JSON_folder=r'4_JSON_folder')
 
 
@@ -214,7 +219,7 @@ check_model_trained(checkpoint_dir=checkpoint_dir,
 
 
 from hyperparameters import *
-from utils import manage_training_output_file
+from utils import manage_training_output_file, run_training_process
 results_folder = r'5_Results'
 date_of_dataset_used = '20250318'  # Date of dataset used for training
 training_output_file = manage_training_output_file(results_folder=results_folder,
@@ -225,38 +230,27 @@ training_output_file = manage_training_output_file(results_folder=results_folder
 data_folder = r'4_JSON_folder\20250318_Augmented'
 date_of_dataset_used = '20250318'  # Date of dataset used for training
 
-# Run the training process and save the output
-with open(training_output_file, 'a') as f:
-    try:
-        result = subprocess.run(['python', 'train.py', 
-                    '--data_folder', data_folder,
-                    '--date_of_dataset_used', date_of_dataset_used,
-                    '--object_detector', 'yes',
-                    '--save_dir', r'6_Checkpoints'],
-                    capture_output=True, text=True, check=True)
-        if result.stdout:
-            for line in result.stdout.splitlines():
-                if line.startswith('Epoch:'):  # write lines starting with 'Epoch:'
-                    f.write(line + '\n')
-    except subprocess.CalledProcessError as e:
-        print(f"Error occurred during training: {e}")
-        if e.stdout:
-            print("Standard Output:")
-            print(e.stdout)
-            f.write("Standard Output:\n")
-            f.write(e.stdout + '\n')
-        if e.stderr:
-            print("Standard Error:")
-            print(e.stderr)
-            f.write("Standard Error:\n")
-            f.write(e.stderr + '\n')
-        f.write(f"Error occurred during training: {e}\n")
-
+run_training_process(data_folder=data_folder,
+                        date_of_dataset_used=date_of_dataset_used,
+                        training_output_file=training_output_file,
+                        save_dir=r'6_Checkpoints') #need to add augmentation boolean arg probably 
 
 # Return the relative file path of the training output file
 print(f"Training output file saved at: {os.path.relpath(training_output_file)}")
 
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

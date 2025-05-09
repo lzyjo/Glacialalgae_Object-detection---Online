@@ -1,4 +1,4 @@
-checkpoint=None
+checkpoint= r'6_Checkpoints\20250318_checkpoint_49.pth.tar'
 batch_size=8
 iterations=1200
 workers=4

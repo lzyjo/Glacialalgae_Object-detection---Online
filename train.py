@@ -89,7 +89,8 @@ def main():
                                     lr=lr, momentum=momentum, weight_decay=weight_decay)
 
     else:
-        checkpoint_data = torch.load(checkpoint)
+        checkpoint_data = torch.load(checkpoint,
+                                     weights_only=False)  # load only the model weights, not the entire checkpoint
         start_epoch = checkpoint_data['epoch'] + 1
         print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
         model = checkpoint_data['model']

@@ -1,4 +1,6 @@
 import os
+from tkinter.ttk import Separator
+from typing import Counter
 import zipfile
 import shutil
 import json
@@ -12,7 +14,7 @@ from datetime import datetime
 from label_map import label_map_Classifier
 from label_map import  label_map_OD
 from hyperparameters import * 
-
+import subprocess
 
 device = torch.device("cpu")
 
@@ -163,51 +165,85 @@ def extract_files(date_of_dataset_used,
     print("-" * 20)  # Add a separator line for better readability
 
     # Extract .xml files to annotations folder
-    num_annotations = sum(len([f for f in os.listdir(folder) if f.endswith('.xml')]) for folder in annotations_src_folder)
-    print(f"Total annotations from {annotations_src_folder}: {num_annotations}")
+    num_annotations_start = 0
+    xml_files = [f for f in os.listdir(annotations_folder) if f.endswith('.xml')]
+    num_annotations_start += len(xml_files)
+    print(f"Total annotations from {annotations_folder}: {num_annotations_start}")
 
     counter = len([f for f in os.listdir(annotations_folder) if f.endswith('.xml')]) + 1
-    for folder in annotations_src_folder:
-        for root, _, files in os.walk(folder):
-            for file in files:
-                if file.endswith('.xml'):
-                    src_file = os.path.join(root, file)
-                    dst_file = os.path.join(annotations_folder, f"{counter}.xml")
-                    if os.path.exists(dst_file):
-                        print(f"Error: File {dst_file} already exists. / "
-                              f"Source file: {src_file} / "
-                              f"Destination file: {dst_file}")
-                        return
-                    shutil.copy(src_file, dst_file)
-                    counter += 1
+    for file in os.listdir(annotations_src_folder):
+        if file.endswith('.xml'):
+            src_file = os.path.join(annotations_src_folder, file)
+            dst_file = os.path.join(annotations_folder, f"{counter}.xml")
+            if os.path.exists(dst_file):
+                print(f"Error: File {dst_file} already exists. / "
+                      f"Source file: {src_file} / "
+                      f"Destination file: {dst_file}")
+                return
+            shutil.copy(src_file, dst_file)
+            counter += 1
 
-    num_annotations_moved = len([f for f in os.listdir(annotations_folder) if f.endswith('.xml')]) 
-    print(f"Files extracted from {date_of_dataset_used} to {annotations_folder}/ "
-          f"Total annotations: {num_annotations_moved}")
+    # Count the number of annotations at the end
+    num_annotations_end = len([f for f in os.listdir(annotations_folder) if f.endswith('.xml')])
+    
+    # Calculate the number of annotations moved
+    num_annotations_moved = num_annotations_end - num_annotations_start
+
+    # Verify if the counts add up
+    if num_annotations_moved == (counter -1):  
+        print(f"Files extracted from {date_of_dataset_used} to {annotations_folder}/ "
+              f"Start: {num_annotations_start}\n"
+              f"Moved: {num_annotations_moved}\n"
+              f"End: {num_annotations_end}\n")
+    else:
+        print(f"Error: Number of annotations in {annotations_folder} does not match the expected count.\n"
+              f"Start: {num_annotations_start}\n"
+              f"Moved: {num_annotations_moved}\n"
+              f"End: {num_annotations_end}\n"
+              f"Expected Moved: {counter - 1}")
+
+    print("-" * 20)  # Add a separator line for better readability
 
     # Extract .tif files to images folder
-    num_images = sum(len([f for f in os.listdir(folder) if f.endswith('.tif')]) for folder in images_src_folder)
-    print(f"Total images from {images_src_folder}: {num_images}")
-    
-    counter = len([f for f in os.listdir(images_folder) if f.endswith('.tif')]) + 1
-    for folder in images_src_folder:
-        for root, _, files in os.walk(folder):
-            for file in files:
-                if file.endswith('.tif'):
-                    dst_file = os.path.join(images_folder, f"{counter}.tif")
-                    if os.path.exists(dst_file):
-                        print(f"Error: File {dst_file} already exists. / "
-                              f"Source file: {os.path.join(root, file)} / "
-                              f"Destination file: {dst_file}")
-                        return
-                    shutil.copy(os.path.join(root, file), dst_file)
-                    counter += 1
-            
-    num_images_moved = len([f for f in os.listdir(images_folder) if f.endswith('.tif')])
-    print(f"Files extracted from {date_of_dataset_used} to {images_folder}/"
-          f"Total images: {num_images_moved}")
-    print("-" * 50)  # Add a separator line for better readability
+    num_images_start = 0
+    tif_files = [f for f in os.listdir(images_folder) if f.endswith('.tif')]
+    num_images_start += len(tif_files)
+    print(f"Total images from {images_folder}: {num_images_start}")
 
+
+    counter = len([f for f in os.listdir(images_folder) if f.endswith('.tif')]) + 1
+    for file in os.listdir(images_src_folder):
+        if file.endswith('.tif'):
+            src_file = os.path.join(images_src_folder, file)
+            dst_file = os.path.join(images_folder, f"{counter}.tif")
+            if os.path.exists(dst_file):
+                print(f"Error: File {dst_file} already exists. / "
+                      f"Source file: {src_file} / "
+                      f"Destination file: {dst_file}")
+                return
+            shutil.copy(src_file, dst_file)
+            counter += 1
+        
+    # Count the number of images at the end
+    num_images_end = len([f for f in os.listdir(images_folder) if f.endswith('.tif')])
+    
+    # Calculate the number of images moved
+    num_images_moved = num_images_end - num_images_start
+
+    # Verify if the counts add up
+    if num_images_moved == (counter -1):
+        print(f"Files extracted from {date_of_dataset_used} to {images_folder}/ ")
+        print(f"Start: {num_images_start}")
+        print(f"Moved: {num_images_moved}")
+        print(f"End: {num_images_end}")
+    else:
+        print(f"Error: Number of images in {images_folder} does not match the expected count. ")
+        print(f"Start: {num_images_start}")
+        print(f"Moved: {num_images_moved}")
+        print(f"End: {num_images_end}")
+        print(f"Expected Moved: {counter - 1}")
+    
+    print("-" * 50)  # Add a separator line for better readability
 
 
     if len(annotations_folder) == len(images_folder):
@@ -476,10 +512,13 @@ def process_standard_data(source_folders,
             if 'test' in dataset['date_of_dataset_used'].lower() or
             (test_filter == 'both' and 'train' in dataset['date_of_dataset_used'].lower())
         ]
+    else:
+        datasets = [
+            dataset for dataset in datasets
+            if 'test' not in dataset['date_of_dataset_used'].lower()
+        ]
 
     
-    print("File extraction completed.")
-
     # If the include_augmentation_list flag is set, process and save a list of augmentations used in the dataset.
     if include_augmentation_list:
         print("List of all augmentations used:")
@@ -507,7 +546,8 @@ def process_standard_data(source_folders,
 
 
 
-def confirm_and_extract(datasets):
+def confirm_and_extract(datasets,
+                        annotations_folder, images_folder):
     """
     Prompts the user to confirm whether to proceed with extracting files from the provided datasets.
     If the user approves, it calls the `extract_files` function for each dataset to perform the extraction.
@@ -535,10 +575,12 @@ def confirm_and_extract(datasets):
     """
 
     for dataset in datasets:
-        print(f"Dataset: {dataset['date_of_dataset_used']}")
+        counter = 1
+        print(f"Dataset {counter}: {dataset['date_of_dataset_used']}")
         print(f"Images Source Folder: {dataset['images_src_folder']}")
         print(f"Annotations Source Folder: {dataset['annotations_src_folder']}")
         print("-" * 50)
+        counter += 1
 
     proceed = input("Do you want to proceed with extracting files? (yes/no): ").strip().lower()
     while proceed not in ['yes', 'no']:
@@ -564,7 +606,8 @@ def confirm_and_extract(datasets):
 def extraction_pipeline(source_folders, 
                         annotations_folder, images_folder,
                         include_test=False, 
-                        raw_data=False):
+                        raw_data=False,
+                        include_augmentation_list=False):
     """
     Extracts files from multiple source folders and organizes them into specified annotations and images folders.
 
@@ -585,7 +628,7 @@ def extraction_pipeline(source_folders,
         datasets = process_standard_data(source_folders, include_test)
 
     if datasets:
-        confirm_and_extract(datasets)
+        confirm_and_extract(datasets, annotations_folder, images_folder)
     
 
 if __name__ == "__main__":
@@ -814,9 +857,10 @@ def parse_annotation(annotation_file, label_map): #FILE not path, because path i
 
 
 
-def create_data_lists(train_annotation_path, train_image_path, test_annotation_path, test_image_path,
+def create_data_lists(train_annotation_path, train_image_path, 
+                      test_annotation_path, test_image_path,
                       date_of_dataset_used,
-                      augmentation,
+                      augmented,
                       object_detector,
                       JSON_folder=r'JSON_folder'):
     """
@@ -828,22 +872,26 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
     :param test_image_path: path to the testing images folder
     :param object_detector: boolean, if True use label_map_OD, if False use label_map_Classifier
     :param date_of_dataset_used: date string for dataset identification
-    :param augmentation: augmentation type, if any
+    :param augmented: boolean, if True indicates augmented data
     :param JSON_folder: folder where the JSONs must be saved
     """
 
     # Select the appropriate label map
     label_map = label_map_OD if object_detector else label_map_Classifier
 
-    # Determine the output folder based on augmentation
-    if augmentation is None:
-        output_folder = os.path.join(JSON_folder, date_of_dataset_used)
-    elif augmentation == 'augmented_data':
+    # Determine the output folder based on whether the data is augmented
+    if augmented:
         output_folder = os.path.join(JSON_folder, f"{date_of_dataset_used}_Augmented")
+    else:
+        output_folder = os.path.join(JSON_folder, date_of_dataset_used)
 
     # Check if data lists already exist
     if all(os.path.exists(os.path.join(output_folder, file)) for file in 
-           ['TEST_images.json', 'TEST_objects.json', 'TRAIN_images.json', 'TRAIN_objects.json', 'label_map.json']):
+           ['TEST_images.json', 
+            'TEST_objects.json', 
+            'TRAIN_images.json', 
+            'TRAIN_objects.json', 
+            'label_map.json']):
         print('Datalists already created')
         return
 
@@ -904,12 +952,16 @@ def create_data_lists(train_annotation_path, train_image_path, test_annotation_p
     # Save the label map
     with open(os.path.join(output_folder, 'label_map.json'), 'w') as j:
         json.dump(label_map, j)
+    print("Label map saved to", os.path.join(output_folder, 'label_map.json'))
+
+    print("-" * 50)  # Print a separator line for better readability
 
     # Process testing data
     process_data(test_image_path, test_annotation_path, label_map,
                  os.path.join(output_folder, 'TEST_images.json'),
                  os.path.join(output_folder, 'TEST_objects.json'))
-
+    
+    print("Data processing completed.")
 
 if __name__ == '__main__':
     """Change paths and output folder accordingly to your setup"""
@@ -1133,7 +1185,7 @@ def manage_training_output_file(results_folder, date_of_dataset_used,
     
     if augmented:
         with open(augmentations_file, 'r') as f:
-            augmentation = f.read().strip().split('\n')
+            augmentation = [line.strip() for line in f if line.strip()]
     else:
         augmentation = None
 
@@ -1179,6 +1231,52 @@ def manage_training_output_file(results_folder, date_of_dataset_used,
 
     return training_output_file
 
+
+
+def run_training_process(data_folder, 
+                         date_of_dataset_used, 
+                         training_output_file, 
+                         save_dir=r'6_Checkpoints'):
+    """
+    Run the training process and save the output to a file.
+
+    Args:
+        data_folder (str): Path to the data folder.
+        date_of_dataset_used (str): Date of the dataset used for training.
+        training_output_file (str): Path to the file where training output will be saved.
+        save_dir (str): Directory to save checkpoints.
+    """
+    with open(training_output_file, 'a') as f:
+        try:
+            result = subprocess.run(['python', 'train.py', 
+                        '--data_folder', data_folder,
+                        '--date_of_dataset_used', date_of_dataset_used,
+                        '--object_detector', 'yes',
+                        '--save_dir', save_dir])
+            if result.stdout:
+                for line in result.stdout.splitlines():
+                    if line.startswith('Epoch:'):  # write lines starting with 'Epoch:'
+                        f.write(line + '\n')
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred during training: {e}")
+            if e.stdout:
+                print("Standard Output:")
+                print(e.stdout)
+                f.write("Standard Output:\n")
+                f.write(e.stdout + '\n')
+            if e.stderr:
+                print("Standard Error:")
+                print(e.stderr)
+                f.write("Standard Error:\n")
+                f.write(e.stderr + '\n')
+
+if __name__ == "__main__":
+    # Run the training process and save the output
+    run_training_process(data_folder=data_folder,
+                         date_of_dataset_used=date_of_dataset_used,
+                         training_output_file=training_output_file,
+                         save_dir=r'6_Checkpoints')
+                                  
 
 def save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir):
     """

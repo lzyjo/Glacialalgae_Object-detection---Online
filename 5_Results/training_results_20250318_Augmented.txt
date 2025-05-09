@@ -1,4 +1,4 @@
-Checkpoint: None
+Checkpoint: 6_Checkpoints\20250318_checkpoint_49.pth.tar
 Batch Size: 8
 Iterations: 1200
 Workers: 4
@@ -11,10 +11,10 @@ Weight Decay: 0.0005
 Gradient Clipping: None
 Checkpoint Frequency: 120
 epoch_num: 1000
-Decay Learning Rate At Epochs: 500
+Decay Learning Rate At Epochs: [500, 800]
 --------------------------------------------------
 Number of Epochs: 1000
 Date of Dataset Used: 20250318_Augmented
-Augmentation: ['20250318_colorjitter ', '20250318_colorjitter_colorjitter_colorjitter ', '20250318_colorjitter_colorjitter_colorjitter_randomhorizontalflip_randomverticalflip ', '20250318_colorjitter_randomhorizontalflip_colorjitter ', '20250318_colorjitter_randomverticalflip_colorjitter ', '20250318_randomhorizontalflip ', '20250318_randomhorizontalflip_randomverticalflip ', '20250318_randomverticalflip']
+Augmentation: ['20250318_colorjitter', '20250318_colorjitter_randomhorizontalflip', '20250318_colorjitter_randomhorizontalflip_randomverticalflip', '20250318_colorjitter_randomverticalflip', '20250318_randomhorizontalflip', '20250318_randomhorizontalflip_randomverticalflip', '20250318_randomverticalflip']
 Object Detector: Classifier
 

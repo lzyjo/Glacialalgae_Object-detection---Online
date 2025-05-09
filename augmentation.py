@@ -16,7 +16,7 @@ from torchvision.transforms.v2 import functional as F
 from itertools import combinations
 import random
 
-from label_map import label_map_classifier # This is the label map for the classifier
+from label_map import label_map_Classifier # This is the label map for the classifier
 from label_map import label_map_OD # This is the label map for the object detector
 
 
@@ -404,7 +404,7 @@ def run_augmentation_pipeline(augmented_dataset_path, date_of_dataset_used,
     None
     """
     # Select the appropriate label map
-    label_map = label_map_OD if object_detector is True else label_map_classifier
+    label_map = label_map_OD if object_detector is True else label_map_Classifier
 
     # Create a folder for the date used under 2_DataAugmentation
     augmented_dataset_path = os.path.join(augmented_dataset_path, date_of_dataset_used)

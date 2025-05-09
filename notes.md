@@ -26,3 +26,6 @@ Capacity in the future to make it more modular in terms of image type (.tif vs .
 4. python debug console
 read u aout it... may be able to use... may be able to save lots of time 
 >>>>>>> Stashed changes
+
+
+5. include vs not include images with no objects?
