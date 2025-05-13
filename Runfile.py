@@ -230,6 +230,30 @@ training_output_file = manage_training_output_file(results_folder=results_folder
 data_folder = r'4_JSON_folder\20250318_Augmented'
 date_of_dataset_used = '20250318'  # Date of dataset used for training
 
+
+
+subprocess.run(['python', 'train.py',
+                '--data_folder', data_folder, 
+                '--training_output_file', training_output_file, 
+                '--save_dir', r'6_Checkpoints',
+                '--object_detector', 'yes',])
+
+
+           
+
+
+
+
+
+
+
+
+subprocess.run(['python', 'train.py', 
+                '--data_folder', '4_JSON_folder\\20250318_Augmented', 
+                '--date_of_dataset_used', '20250318', 
+                '--training_output_file', 'training_results_20250318_augmented.txt', 
+                '--save_dir', '6_Checkpoints'])
+
 run_training_process(data_folder=data_folder,
                         date_of_dataset_used=date_of_dataset_used,
                         training_output_file=training_output_file,
@@ -237,6 +261,26 @@ run_training_process(data_folder=data_folder,
 
 # Return the relative file path of the training output file
 print(f"Training output file saved at: {os.path.relpath(training_output_file)}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -23,10 +23,14 @@ Capacity in the future to make it more modular in terms of image type (.tif vs .
 
 4. python debug console
 read u aout it... may be able to use... may be able to save lots of time 
-<<<<<<< HEAD
->>>>>>> Stashed changes
+
+5. FasterRCNN class
+in order to train amodel with the faster rcnn architecture (not-pretrained), am i able to simply do so by using model = fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2) as compared to  model = fasterrcnn_resnet50_fpn(pretrained=True, num_classes=2)? 
+Or do i have to create a model.py file essentally, and use class FasterRCNN to define the layers (among others), and if so, how do I go about doing that? It was very confusing. 
+Most of the code in current model.py file (FasterRCNN class etc) is from pytorch docs
 
 
-5. include vs not include images with no objects?
-=======
->>>>>>> 7b68930347bc2397d62d611e2dd6818ef7cc3c1b
+TO-DO-LIST
+
+- [ ] Include integration with TensorBoard for  visualization and monitoring and model progress tracking.
+- [ ] Include optmiser and loss criterion in model training.txt file 

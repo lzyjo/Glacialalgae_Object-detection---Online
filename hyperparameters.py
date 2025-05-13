@@ -1,4 +1,15 @@
-checkpoint= r'6_Checkpoints\20250318_checkpoint_49.pth.tar'
+import torch
+import torch.nn as nn
+import torchvision
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
+
+"""
+All params below should be tuned for your specific task and dataset.
+"""
+
+
+# Hyperparameters
+checkpoint= None
 batch_size=8
 iterations=1200
 workers=4
@@ -12,6 +23,13 @@ grad_clip=None
 checkpoint_freq=120
 epoch_num=1000
 decay_lr_at_epochs = [500, 800]
+
+# Model params
+model = fasterrcnn_resnet50_fpn(pretrained=False,
+                                num_classes=2)  # Assuming 2 classes (background + object)
+optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum)
+loss_fn = nn.BCELoss() # Assuming a binary classification task
+                # Assuming a classification task: loss_fn = nn.CrossEntropyLoss(
 
 
 """params_dict = {

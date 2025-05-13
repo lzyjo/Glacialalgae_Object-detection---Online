@@ -18,3 +18,22 @@ Date of Dataset Used: 20250318_Augmented
 Augmentation: ['20250318_colorjitter', '20250318_colorjitter_randomhorizontalflip', '20250318_colorjitter_randomhorizontalflip_randomverticalflip', '20250318_colorjitter_randomverticalflip', '20250318_randomhorizontalflip', '20250318_randomhorizontalflip_randomverticalflip', '20250318_randomverticalflip']
 Object Detector: Classifier
 
+Standard Error:
+C:\Users\me20332\OneDrive - University of Bristol\MscR\GitHub\Glacialalgae_Object detection - Online\utils.py:1802: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  if d.__name__ is 'adjust_hue':
+Traceback (most recent call last):
+  File "C:\Users\me20332\OneDrive - University of Bristol\MscR\GitHub\Glacialalgae_Object detection - Online\train.py", line 201, in <module>
+    main()
+  File "C:\Users\me20332\OneDrive - University of Bristol\MscR\GitHub\Glacialalgae_Object detection - Online\train.py", line 92, in main
+    checkpoint_data = torch.load(checkpoint,
+                      ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\me20332\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch\serialization.py", line 1319, in load
+    with _open_file_like(f, "rb") as opened_file:
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\me20332\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch\serialization.py", line 659, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\me20332\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch\serialization.py", line 640, in __init__
+    super().__init__(open(name, mode))
+                     ^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '6_Checkpoints\\20250318_checkpoint_49.pth.tar'
