@@ -28,6 +28,8 @@ def convert_labels_to_cell(annotations_folder):
                     obj.find('name').text = 'cell'
             
             tree.write(file_path)
+    
+    print(f"Labels in {annotations_folder} have been updated to 'cell' for all objects except 'UNKNOWN'.")
 
 if __name__ == '__main__':
     annotations_folder = r'GA_Dataset\20250219\Annotations'
@@ -57,6 +59,8 @@ def remove_unknowns_from_labels(annotations_folder):
                     root.remove(obj)
                 
             tree.write(file_path)
+    
+    print(f"Removed 'UNKNOWN' labels from {annotations_folder}.")
 
 if __name__ == '__main__':
     annotations_folder = r'GA_Dataset\20250219\Annotations'

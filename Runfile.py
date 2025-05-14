@@ -34,28 +34,18 @@ from utils import extraction_pipeline
 
 ### Extract files from the augmented dataset folders to the TRAIN split
 source_folders = [
-    r'0_Completed annotations\Bluff_230724 copy',  # Original dataset, not augmented
-    r'0_Completed annotations\PAM_Surf_220724 copy'  # Augmented datasets
+    r'0_Completed annotations\Bluff_230724',  # Original dataset, not augmented
+    r'0_Completed annotations\PAM_Surf_220724'  # Augmented datasets
 ]
 
-annotations_folder = r'1_GA_Dataset/20250506/Annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'1_GA_Dataset/20250506/Images' # Change this to the correct folder for which files are to be extracted to
+annotations_folder = r'1_GA_Dataset/20250513/Annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'1_GA_Dataset/20250513/Images' # Change this to the correct folder for which files are to be extracted to
 
 extraction_pipeline(source_folders=source_folders,
                     annotations_folder=annotations_folder, images_folder=images_folder,
-                    include_test=False,
-                    raw_data=True) # Call the function to extract files from multiple folders
-
-
-
-
-
-
-
-from utils import move_raw_images_to_dataset
-
-move_raw_images_to_dataset(master_folder=r'0_Completed annotations\Bluff_230724 copy\Bluff_230724_Raw_Images',
-                           destination_folder=r'0_Completed annotations\Bluff_230724 copy')
+                    train_test_val=False, # For train split, include_test = False because we are not including test data in the training data
+                    raw_data=True,
+                    include_augmentation_list=False) # Call the function to extract files from multiple folders
 
 
 
@@ -66,23 +56,23 @@ move_raw_images_to_dataset(master_folder=r'0_Completed annotations\Bluff_230724 
 ## LABELS ARE CELL ONLY + NO UNKNOWNS 
 from OD_misc_utils import convert_labels_to_cell, remove_unknowns_from_labels
 
-annotations_folder = r'1_GA_Dataset\20250318\Annotations' # Change this to the correct folder for which files are to be extracted to
+annotations_folder = r'1_GA_Dataset\20250513\Annotations' # Change this to the correct folder for which files are to be extracted to
 
 convert_labels_to_cell(annotations_folder= annotations_folder) # Convert all labels to 'cell' in the annotation files
 remove_unknowns_from_labels(annotations_folder= annotations_folder) # Remove all 'UNKNOWN' labels from the annotation files
 
 
-# TRAIN, TEST, VAL SPLIT
+# TRAIN, TEST,  SPLIT
 from utils import convert_files_to_list, split_and_copy_files
 
-annotations_folder = r'1_GA_Dataset\20250318\Annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'1_GA_Dataset\20250318\Images' # Change this to the correct folder for which files are to be extracted to
+annotations_folder = r'1_GA_Dataset\20250513\Annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'1_GA_Dataset\20250513\Images' # Change this to the correct folder for which files are to be extracted to
 
 images, annotations = convert_files_to_list(images_folder=images_folder, 
                                             annotations_folder=annotations_folder) # Convert to list 
 
 
-output_folder = r'1_GA_Dataset\20250318\Split' #output folder forw here split is stored 
+output_folder = r'1_GA_Dataset\20250513\Split' #output folder forw here split is stored 
 split_and_copy_files(images, annotations, #create_testtrain_folders, copy files, then split into test and train
                      output_folder= output_folder) 
 
@@ -104,9 +94,9 @@ random_augmentations = define_and_generate_transformations(num_random_augmentati
 
 # Run augmentation pipeline for each combination of transformations/random generated combinations 
 augmented_dataset_path = r'2_DataAugmentation' # if needed, current_date = datetime.now().strftime('%Y%m%d')
-date_of_dataset_used = '20250318'
-image_dir =  r'1_GA_Dataset\20250318\Split\train\images' #Original SPLIT annotation folder in GA_Dataset 
-annotation_dir = r'1_GA_Dataset\20250318\Split\train\annotations' #Original SPLIT image folder in GA_Dataset
+date_of_dataset_used = '20250513'
+image_dir =  r'1_GA_Dataset\20250513\Split\train\images' #Original SPLIT annotation folder in GA_Dataset 
+annotation_dir = r'1_GA_Dataset\20250513\Split\train\annotations' #Original SPLIT image folder in GA_Dataset
 
 run_augmentation_pipeline(augmented_dataset_path=augmented_dataset_path,
                             date_of_dataset_used=date_of_dataset_used,
@@ -133,8 +123,8 @@ from utils import create_dataset_folder
                                                                 # 1_GA_Dataset\20250221_randomrotation
 
 create_dataset_folder(base_folder=r'3_TrainingData', #base folder where dataset is stored
-                      folder_date='20250318', #date of dataset created
-                      Split=True, #True if want to split the dataset into train/test/val, False if not
+                      folder_date='20250513', #date of dataset created
+                      Split=True, #True if want to split the dataset into train/test/, False if not
                       Augmented=True) 
 
 
@@ -145,56 +135,65 @@ from utils import extraction_pipeline
 
 ### Extract files from the augmented dataset folders to the TRAIN split
 source_folders = [
-    r'1_GA_Dataset\20250318\Split',  # Original dataset, not augmented
-    r'2_DataAugmentation\20250318'  # Augmented datasets
+    r'1_GA_Dataset\20250513\Split',  # Original dataset, not augmented
+    r'2_DataAugmentation\20250513'  # Augmented datasets
 ]
 
-training_data_folder = r'3_TrainingData\20250318_Augmented' # Change this to the correct folder for which files are to be extracted to
-annotations_folder = r'3_TrainingData\20250318_Augmented\Split\train\annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'3_TrainingData\20250318_Augmented\Split\train\images' # Change this to the correct folder for which files are to be extracted to
+training_data_folder = r'3_TrainingData\20250513_Augmented' # Change this to the correct folder for which files are to be extracted to
+annotations_folder = r'3_TrainingData\20250513_Augmented\Split\train\annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'3_TrainingData\20250513_Augmented\Split\train\images' # Change this to the correct folder for which files are to be extracted to
 
-
-# For train split, include_test = False, because we are not including test data in the training data
+# Extract files from the raw and augmented dataset folders to the TRAIN split
 extraction_pipeline(source_folders=source_folders, # Source to extract from
                     annotations_folder=annotations_folder, # Destination for annotations
                     images_folder=images_folder, # Destination for images
-                    include_test=False, # For train split, include_test = False because we are not including test data in the training data
+                    train_test_val= ['train'], # For train split, train_test_val = 'train' because we are including train data
                     raw_data=False, # For train split, raw_data = False because we are using the augmented data
                     include_augmentation_list=True) # For train split, include_augmentation_list = True because we are including the augmentation list (using augmented data)
 
 
 ### Extract files from dataset folders to the TEST split
 source_folders = [
-    r'1_GA_Dataset\20250318\Split']  # Original dataset, not augmented 
+    r'1_GA_Dataset\20250513\Split']  # Original dataset, not augmented 
 
-annnotations_folder = r'3_TrainingData\20250318_Augmented\Split\test\annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'3_TrainingData\20250318_Augmented\Split\test\images' # Change this to the correct folder for which files are to be extracted to
+annotations_folder = r'3_TrainingData\20250513_Augmented\Split\test\annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'3_TrainingData\20250513_Augmented\Split\test\images' # Change this to the correct folder for which files are to be extracted to
 
-extraction_pipeline(source_folders, 
-                    annnotations_folder, images_folder,
-                    include_test=True, # For test split, include_test = True, because we are including test data 
-                    raw_data=False, # For test split, raw_data = True if we are extracting from original format (raw from ImageJ), 
-                                                                # False if we are extracting from test split in the dataset folder (.tifs already moved)
-                    include_augmentation_list=False) # For test split, include_augmentation_list = False, because we do not need to include the augmentation list (using raw data)
-
-
+extraction_pipeline(source_folders= source_folders, # Source to extract from
+                    annotations_folder= annotations_folder, # Destination for annotations
+                    images_folder= images_folder, # Destination for images
+                    train_test_val= ['test'], # For test split, train_test_val = 'test' because we are including test data
+                    raw_data=False, # For test split, raw_data = False because we are using the augmented data
+                    include_augmentation_list=False) # For test split, include_augmentation_list = False because we do not need to include the augmentation list (using raw data)
 
 
+### Extract files from dataset folders to the VAL split
+source_folders = [
+        r'1_GA_Dataset\20250513\Split']  # Original dataset, not augmented 
 
+annotations_folder = r'3_TrainingData\20250513_Augmented\Split\val\annotations' # Change this to the correct folder for which files are to be extracted to
+images_folder = r'3_TrainingData\20250513_Augmented\Split\val\images' # Change this to the correct folder for which files are to be extracted to
+
+extraction_pipeline(source_folders= source_folders, # Source to extract from
+                    annotations_folder= annotations_folder, # Destination for annotations
+                    images_folder= images_folder, # Destination for images
+                    train_test_val= ['val'], # For val split, train_test_val = 'val' because we are including val data
+                    raw_data=False, # For val split, raw_data = False because we are using the augmented data
+                    include_augmentation_list=False) # For val split, include_augmentation_list = False because we do not need to include the augmentation list (using raw data)
 
 
 # DATALOADER CREATION
-# Creating datalists for the train, val and test data
+# Creating datalists for the train,  and test data
 from utils import create_data_lists
 from label_map import label_map_Classifier # Label map (explicitly defined)
 from label_map import label_map_OD # Label map (object detector)
 import shutil
 
-train_annotation_path= r'3_TrainingData\20250318_Augmented\Split\train\annotations'
-train_image_path= r'3_TrainingData\20250318_Augmented\Split\train\images'  
-test_annotation_path= r'3_TrainingData\20250318_Augmented\Split\test\annotations'
-test_image_path= r'3_TrainingData\20250318_Augmented\Split\test\images'
-date_of_dataset_used='20250318'
+train_annotation_path= r'3_TrainingData\20250513_Augmented\Split\train\annotations'
+train_image_path= r'3_TrainingData\20250513_Augmented\Split\train\images'  
+test_annotation_path= r'3_TrainingData\20250513_Augmented\Split\test\annotations'
+test_image_path= r'3_TrainingData\20250513_Augmented\Split\test\images'
+date_of_dataset_used='20250513'
 
 create_data_lists(train_annotation_path=train_annotation_path,
                 train_image_path=train_image_path,
@@ -211,7 +210,7 @@ create_data_lists(train_annotation_path=train_annotation_path,
 from utils import check_model_trained
 
 checkpoint_dir = r'6_Checkpoints'  # Directory where checkpoints are stored
-date_of_dataset_used = '20250318'  # Date of dataset used for training
+date_of_dataset_used = '20250513'  # Date of dataset used for training
 check_model_trained(checkpoint_dir=checkpoint_dir,
                     date_of_dataset_used=date_of_dataset_used,
                     augmented=True)  # Check if model is already trained and present
@@ -221,18 +220,18 @@ check_model_trained(checkpoint_dir=checkpoint_dir,
 from hyperparameters import *
 from utils import manage_training_output_file, run_training_process
 results_folder = r'5_Results'
-date_of_dataset_used = '20250318'  # Date of dataset used for training
+date_of_dataset_used = '20250513'  # Date of dataset used for training
 training_output_file = manage_training_output_file(results_folder=results_folder,
                                                    date_of_dataset_used=date_of_dataset_used,
                                                    augmented=True)  # augmented_data if augmented dataset used
 
 # TRAIN MODEL: Run the training process and save the output
-data_folder = r'4_JSON_folder\20250318_Augmented'
-date_of_dataset_used = '20250318'  # Date of dataset used for training
+data_folder = r'4_JSON_folder\20250513_Augmented'
+date_of_dataset_used = '20250513'  # Date of dataset used for training
 
 
 
-subprocess.run(['python', 'train.py',
+subprocess.run(['python', 'train_custom.py',
                 '--data_folder', data_folder, 
                 '--training_output_file', training_output_file, 
                 '--save_dir', r'6_Checkpoints',
@@ -319,7 +318,7 @@ evaluation_output_file = os.path.join(results_folder, f'evaluation_results_{os.p
 os.makedirs(results_folder, exist_ok=True)
 
 with open(evaluation_output_file, 'w') as f:
-    subprocess.run(['python', 'eval.py',
+    subprocess.run(['python', 'e.py',
                     '--data_folder', r'4_JSON_folder\20250219',
                     '--checkpoint', checkpoint], stdout=f)
 

@@ -18,6 +18,7 @@ Is it beneficial to do so? Or keep as is, is also fine and efficient?
 
 3. extraction_pipeline()
 Capacity in the future to make it more modular in terms of image type (.tif vs .jpeg) or annotation type (/xml vs .jason) or even folder names/branch terms to look out for (ROI, VOC, Overlays etc)
+currently 3 sections of code for train test spit extraction.. want to find a way in future commit/funciton creation or clean up, to make this less convoluted and more simple/modular 
 
 
 
@@ -28,6 +29,11 @@ read u aout it... may be able to use... may be able to save lots of time
 in order to train amodel with the faster rcnn architecture (not-pretrained), am i able to simply do so by using model = fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2) as compared to  model = fasterrcnn_resnet50_fpn(pretrained=True, num_classes=2)? 
 Or do i have to create a model.py file essentally, and use class FasterRCNN to define the layers (among others), and if so, how do I go about doing that? It was very confusing. 
 Most of the code in current model.py file (FasterRCNN class etc) is from pytorch docs
+
+6. to use tensorboard from torch.utils, you may NOT have a .py file called tensorboard.py or the file
+will try to import from there causing problems...
+
+7. now need to work on custom dataloaders and datasets
 
 
 TO-DO-LIST
