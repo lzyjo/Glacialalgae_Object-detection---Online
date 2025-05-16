@@ -1,220 +1,329 @@
+import torch
+from torch.utils.data import DataLoader
+from dataset import GA_Dataset
+from label_map import label_map_Classifier, label_map_OD
+import argparse
+from utils import adjust_learning_rate
+from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.metrics import average_precision_score, jaccard_score
+from tqdm import tqdm
+from hyperparameters import *
+import datetime
+from torch.utils.tensorboard import SummaryWriter
+import csv
 import os
 import shutil
-from datetime import datetime
+import time
+from dataset import GA_Dataset, collate_fn
 
+# ------------------- ARGUMENTS -------------------
+object_detector = 'yes'  # or 'no'
+data_folder = r'4_JSON_folder\20250513_Augmented'
+training_output_file = r'5_Results/training_results_20250513_Augmented.txt'
+save_dir = r'Checkpoints'
 
-
-source_folders = [
-    r'1_GA_Dataset\20250513\Split',  # Original dataset, not augmented
-    r'2_DataAugmentation\20250513'  # Augmented datasets
-]
-
-
-
-
-
-annotations_src_folder = r'1_GA_Dataset\20250513\Split\test\Annotations'
-images_src_folder = r'1_GA_Dataset\20250513\Split\test\Images'
-annotations_folder = r'3_TrainingData\20250513_Augmented\Split\test\annotations' # Change this to the correct folder for which files are to be extracted to
-images_folder = r'3_TrainingData\20250513_Augmented\Split\test\images' # Change this to the correct folder for which files are to be extracted to
-
-
-# Extract .xml files to annotations folder
-num_annotations_start = 0
-xml_files = [f for f in os.listdir(annotations_folder) if f.endswith('.xml')]
-num_annotations_start += len(xml_files)
-print(f"Total annotations from {annotations_folder}: {num_annotations_start}")
-
-counter = len([f for f in os.listdir(annotations_folder) if f.endswith('.xml')]) + 1
-if isinstance(annotations_src_folder, str):
-    annotations_src_folders = [annotations_src_folder]
+# ------------------- DATA PARAMETERS -------------------
+if object_detector == 'yes':
+    label_map = label_map_OD
 else:
-    annotations_src_folders = annotations_src_folder
+    label_map = label_map_Classifier
 
-for folder in annotations_src_folders:
-    for file in os.listdir(folder):
-        if file.endswith('.xml'):
-            src_file = os.path.join(folder, file)
-            dst_file = os.path.join(annotations_folder, f"{counter}.xml")
-            if os.path.exists(dst_file):
-                print(f"Error: File {dst_file} already exists. / "
-                        f"Source file: {src_file} / "
-                        f"Destination file: {dst_file}")
-                raise RuntimeError(f"File {dst_file} already exists. Stopping execution.")
-            shutil.copy(src_file, dst_file)
-        counter += 1
+n_classes = len(label_map)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+# You must define your model here, e.g.:
+# model = MyModel(...)
+model = model.to(device)
 
+data_folder = data_folder
+train_dataset = GA_Dataset(data_folder, split='train', keep_difficult=False)
+# View a sample annotation as parsed by the dataset
+sample_ann = train_dataset[0]
+print("Sample parsed annotation from GA_Dataset[0]:")
+if isinstance(sample_ann, (tuple, list)):
+    for idx, item in enumerate(sample_ann):
+        print(f"  Item {idx}: type={type(item)}, shape={getattr(item, 'shape', 'N/A')}")
+else:
+    print(f"  Type: {type(sample_ann)}, shape={getattr(sample_ann, 'shape', 'N/A')}")
 
+train_dataset = GA_Dataset(data_folder, split='train', keep_difficult=False)
+train_loader = torch.utils.data.DataLoader(
+    train_dataset,
+    batch_size=batch_size,
+    shuffle=True,
+    collate_fn=train_dataset.collate_fn,
+    num_workers=workers,
+    pin_memory=True
+)
 
+validation_dataset = GA_Dataset(data_folder, split='val', keep_difficult=False)
+validation_loader = torch.utils.data.DataLoader(
+    validation_dataset,
+    batch_size=batch_size,
+    shuffle=False,
+    collate_fn=validation_dataset.collate_fn,
+    num_workers=workers,
+    pin_memory=True
+)   
 
-
-    # Create destination folders if they do not exist
-    if not os.path.exists(annotations_folder):
-        os.makedirs(annotations_folder)
-    else:
-        print(f"Folder {annotations_folder} already exists.")
-        
-
-    if not os.path.exists(images_folder):
-        os.makedirs(images_folder)
-    else:
-        print(f"Folder {images_folder} already exists.")
-
-    print("-" * 20)  # Add a separator line for better readability
-
-    # Extract .xml files to annotations folder
-    num_annotations_start = 0
-    xml_files = [f for f in os.listdir(annotations_folder) if f.endswith('.xml')]
-    num_annotations_start += len(xml_files)
-    print(f"Total annotations from {annotations_folder}: {num_annotations_start}")
-
-    counter = len([f for f in os.listdir(annotations_folder) if f.endswith('.xml')]) + 1
-    for folder in annotations_src_folder:
-        for file in os.listdir(folder):
-            if file.endswith('.xml'):
-               src_file = os.path.join(folder, file)
-               dst_file = os.path.join(annotations_folder, f"{counter}.xml")
-               if os.path.exists(dst_file):
-                   print(f"Error: File {dst_file} already exists. / "
-                         f"Source file: {src_file} / "
-                         f"Destination file: {dst_file}")
-                   return
-               shutil.copy(src_file, dst_file)
-            counter += 1
-
-    # Count the number of annotations at the end
-    num_annotations_end = len([f for f in os.listdir(annotations_folder) if f.endswith('.xml')])
-    
-    # Calculate the number of annotations moved
-    num_annotations_moved = num_annotations_end - num_annotations_start
-
-    # Verify if the counts add up
-    if num_annotations_moved == (counter -1):  
-        print(f"Files extracted from {date_of_dataset_used} to {annotations_folder}/ "
-              f"Start: {num_annotations_start}\n"
-              f"Moved: {num_annotations_moved}\n"
-              f"End: {num_annotations_end}\n")
-    else:
-        print(f"Error: Number of annotations in {annotations_folder} does not match the expected count.\n"
-              f"Start: {num_annotations_start}\n"
-              f"Moved: {num_annotations_moved}\n"
-              f"End: {num_annotations_end}\n"
-              f"Expected Moved: {counter - 1}")
-
-    print("-" * 20)  # Add a separator line for better readability
-
-    # Extract .tif files to images folder
-    num_images_start = 0
-    tif_files = [f for f in os.listdir(images_folder) if f.endswith('.tif')]
-    num_images_start += len(tif_files)
-    print(f"Total images from {images_folder}: {num_images_start}")
+test_dataset = GA_Dataset(data_folder, split='test', keep_difficult=False)
+test_loader = torch.utils.data.DataLoader(
+    test_dataset,
+    batch_size=batch_size,
+    shuffle=False,
+    collate_fn=test_dataset.collate_fn, #question: why do i not included batch_size as an argument here?
+    num_workers=workers,
+    pin_memory=True
+)
 
 
-    counter = len([f for f in os.listdir(images_folder) if f.endswith('.tif')]) + 1
-    for folder in images_src_folder:
-        for file in os.listdir(folder):
-            if file.endswith('.tif'):
-               src_file = os.path.join(folder, file)
-               dst_file = os.path.join(images_folder, f"{counter}.tif")
-               if os.path.exists(dst_file):
-                   print(f"Error: File {dst_file} already exists. / "
-                         f"Source file: {src_file} / "
-                         f"Destination file: {dst_file}")
-                   return
-               shutil.copy(src_file, dst_file)
-            counter += 1
-        
-    # Count the number of images at the end
-    num_images_end = len([f for f in os.listdir(images_folder) if f.endswith('.tif')])
-    
-    # Calculate the number of images moved
-    num_images_moved = num_images_end - num_images_start
-
-    # Verify if the counts add up
-    if num_images_end == (counter - 1):
-        print(f"Files extracted from {date_of_dataset_used} to {images_folder}/ ")
-        print(f"Start: {num_images_start}")
-        print(f"Moved: {num_images_moved}")
-        print(f"End: {num_images_end}")
-    else:
-        print(f"Error: Number of images in {images_folder} does not match the expected count. ")
-        print(f"Start: {num_images_start}")
-        print(f"Moved: {num_images_moved}")
-        print(f"End: {num_images_end}")
-        print(f"Expected Moved: {counter - 1}")
-    
-    print("-" * 50)  # Add a separator line for better readability
 
 
-    if len(annotations_folder) == len(images_folder):
-        print("The number of annotation files and image files are the same.")
-        print("Number of annotation files:", len(annotations_folder))
-        print("Number of image files:", len(images_folder)) 
-
-    def check_file_matching(annotations_folder, images_folder, annotations_src_folder, images_src_folder):
-        """
-        Check if the files in the annotations and images folders have matching file names (different extensions).
-        If not, identify unmatched files in both folders and their source folders.
-
-        Args:
-            annotations_folder (str): Path to the folder containing annotation (.xml) files.
-            images_folder (str): Path to the folder containing image (.tif) files.
-            annotations_src_folder (str): Path to the source folder containing annotation (.xml) files.
-            images_src_folder (str): Path to the source folder containing image (.tif) files.
-
-        Returns:
-            None
-        """
-        # Check if the files in these folders have the same file name (just different extension)
-        files_in_annotations_folder = [f for f in os.listdir(annotations_folder) if f.endswith('.xml')]
-        files_in_images_folder = [f for f in os.listdir(images_folder) if f.endswith('.tif')]
-        files_in_annotations_folder_no_ext = [os.path.splitext(f)[0] for f in files_in_annotations_folder]
-        files_in_images_folders_no_ext = [os.path.splitext(f)[0] for f in files_in_images_folder]
-
-        if set(files_in_annotations_folder_no_ext) == set(files_in_images_folders_no_ext):
-            print("The files in the annotations and images folders have the same file names (just different extensions).")
-            print("-" * 50)  # Add a separator line for better readability
+# View a batch as returned by collate_fn
+print("\nSample batch from train_loader (collate_fn output):")
+batch = next(iter(train_loader))
+if isinstance(batch, (tuple, list)):
+    for idx, item in enumerate(batch):
+        if idx == 0:
+            print(f"  Batch item {idx}: type={type(item)}, shape={getattr(item, 'shape', 'N/A')}")
         else:
-            unmatched_annotations = set(files_in_annotations_folder_no_ext) - set(files_in_images_folders_no_ext)
-            unmatched_images = set(files_in_images_folders_no_ext) - set(files_in_annotations_folder_no_ext)
+            if isinstance(item, list):
+                for j, subitem in enumerate(item):
+                    print(f"  Batch item {idx}:")
+                    print(f"    Subitem {j}: type={type(subitem)}, shape={getattr(subitem, 'shape', 'N/A')}")
+                    print('-' * 50)
+            else:
+                print(f"  Batch item {idx}: type={type(item)}, shape={getattr(item, 'shape', 'N/A')}")
+else:
+    print(f"Type: {type(batch)}, shape={getattr(batch, 'shape', 'N/A')}")
+# Note: This code prints the type and shape of each batch item. 
+# If a batch item is a list (e.g., a list of tensors), it iterates through the list and prints the shape of each element inside.
+# This avoids trying to access .shape on a list directly (which would be 'N/A'), and instead shows the shapes of the actual tensors inside the list.
 
-            print("The files in the annotations and images folders do not match.")
-            print("Unmatched annotation files:", unmatched_annotations)
-            print("Unmatched image files:", unmatched_images)
 
-            # Get the list of .xml files in the annotations folder including subfolders
-            xml_files = []
-            for root, dirs, files in os.walk(annotations_src_folder):
-                for file in files:
-                    if file.endswith('.xml'):
-                        xml_files.append(file)
-            xml_files_no_ext = [os.path.splitext(file)[0] for file in xml_files]
+# --- View a few batches from the loaders for inspection ---
+def inspect_loader(loader, name, num_batches=1):
+    print(f"\nInspecting {name} loader:")
+    for i, batch in enumerate(loader):
+        print(f"Batch {i+1}:")
+        if isinstance(batch, (list, tuple)):
+            for idx, item in enumerate(batch):
+                print(f"  Item {idx} type: {type(item)}; shape: {getattr(item, 'shape', 'N/A')}")
+        else:
+            print(f"  Batch type: {type(batch)}; shape: {getattr(batch, 'shape', 'N/A')}")
+        if i + 1 >= num_batches:
+            break
 
-            # Get the list of .tif files in the images folder including subfolders
-            tif_files = []
-            for root, dirs, files in os.walk(images_src_folder):
-                for file in files:
-                    if file.endswith('.tif'):
-                        tif_files.append(file)
-            tif_files_no_ext = [os.path.splitext(file)[0] for file in tif_files]
+# Example usage:
+inspect_loader(train_loader, "train", num_batches=1) #shape (batch_size, channels, height, width)
+inspect_loader(validation_loader, "validation", num_batches=1)
+inspect_loader(test_loader, "test", num_batches=1)
 
-            # Find unmatched files
-            unmatched_annotations = set(xml_files_no_ext) - set(tif_files_no_ext)
-            unmatched_images = set(tif_files_no_ext) - set(xml_files_no_ext)
+# ------------------- INITIALIZE TRAINING -------------------
+checkpoint = None  # Set this if you want to load from checkpoint
 
-            # Print the results
-            print(f"The files in the {annotations_src_folder} and {images_src_folder} do not match.")
-            print("Unmatched annotation files:", unmatched_annotations)
-            print("Unmatched image files:", unmatched_images)
-            print("-" * 50)  # Add a separator line for better readability)
+if checkpoint is None:
+    start_epoch = 0
+    # You must define optimizer and loss_fn here, e.g.:
+    # optimizer = torch.optim.Adam(model.parameters(), lr=...)
+    # loss_fn = torch.nn.CrossEntropyLoss()
+    optimizer = optimizer
+    loss_fn = loss_fn
+    print('\nNo checkpoint provided. Starting training from scratch.\n')
+    print(f"Start epoch: {start_epoch}")
+    print(f"Optimizer: {optimizer}")
+    print(f"Loss function: {loss_fn}")
+else:
+    checkpoint_data = torch.load(checkpoint)
+    print(f'\nLoaded checkpoint from epoch {checkpoint_data["epoch"] + 1}.\n')
+    print(f"Optimizer: {checkpoint_data['optimizer']}")
+    print(f"Loss function: {checkpoint_data['loss_fn']}")
+    start_epoch = checkpoint_data['epoch'] + 1
+    optimizer = checkpoint_data['optimizer']
+    loss_fn = checkpoint_data['loss_fn']
 
-    check_file_matching(annotations_folder, images_folder, annotations_src_folder, images_src_folder)
-        
-if __name__ == '__main__':
-    extract_files(date_of_dataset_used=date_of_dataset_used,  # Change this to the correct dataset used, FOR REFERENCE ONLY
-                    annotations_folder=r'GA_Dataset\20250219\Annotations',  # Change this to the correct folder for which files were extracted 
-                    images_folder=r'GA_Dataset\20250219\Images',  # Change this to the correct folder for which files were extracted 
-                    images_src_folder=r'Completed annotations/Bluff_230724/Original_Images_Unlabelled_Bluff_230724',
-                    annotations_src_folder=r'Completed annotations\Bluff_230724')  # Change this to your source folder path 
-                    
+# ------------------- TRAINING LOOP -------------------
+training_output_file = training_output_file
+writer = SummaryWriter(f'5_Results/{training_output_file}')
+total_epochs = epoch_num
+decay_lr_at_epoch = decay_lr_at_epochs
+
+# Only run 1 epoch
+for epoch in range(start_epoch, start_epoch + 1):
+    if epoch in decay_lr_at_epoch:
+        adjust_learning_rate(optimizer, decay_lr_to)
+    epoch_print = epoch + 1
+
+    # --------- Train One Epoch ---------
+    print(f'\nEpoch {epoch_print}/{total_epochs}')
+    model.train()
+    running_loss = 0.0
+  
+    for i, (images, boxes, labels, _) in enumerate(
+        tqdm(train_loader, desc=f'Epoch {epoch_print}/{total_epochs}', unit='batch')
+    ):
+        # Optionally, track data loading time if needed
+        # data_time.update(time.time() - start)
+
+        # Move data to device
+        images = images.to(device)
+        # Prepare targets for detection models
+        if object_detector == 'yes':
+            # targets should be a list of dicts, each with 'boxes' and 'labels'
+            targets = []
+            for b, l in zip(boxes, labels):
+                targets.append({
+                    'boxes': b.to(device),
+                    'labels': l.to(device)
+                })
+            optimizer.zero_grad()
+            loss_dict = model(images, targets)
+            # For torchvision models, loss_dict is a dict of losses
+            loss = sum(loss for loss in loss_dict.values())
+        else:
+            # For classification models
+            if isinstance(labels, (list, tuple)):
+                labels = [l.to(device) for l in labels]
+            else:
+                labels = labels.to(device)
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = loss_fn(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        running_loss += loss.item()
+
+    if i % 1000 == 999:
+        avg_loss = running_loss / 1000
+        print(f'  batch {i + 1} loss: {avg_loss}')
+        writer.add_scalar('Loss/train', avg_loss, epoch_print * len(train_loader) + i + 1)
+        running_loss = 0.0
+
+    # --------- Calculate Metrics and Loss (Train) ---------
+    correct = 0
+    total = 0
+    all_preds = []
+    all_labels = []
+    all_outputs = []
+    running_loss = 0.0
+    iou_scores = []
+    with torch.no_grad():
+        for images, boxes, labels, _ in train_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            loss = loss_fn(outputs, labels)
+            running_loss += loss.item()
+            _, preds = torch.max(outputs, 1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+            all_outputs.extend(outputs.cpu().numpy())
+            for pred, label in zip(preds, labels):
+                pred_np = pred.cpu().numpy().flatten()
+                label_np = label.cpu().numpy().flatten()
+                iou = jaccard_score(label_np, pred_np, average='binary', zero_division=0)
+                if iou is not None:
+                    iou_scores.append(iou)
+    train_accuracy = correct / total
+    train_precision = precision_score(all_labels, all_preds, average='weighted', zero_division=0)
+    train_recall = recall_score(all_labels, all_preds, average='weighted', zero_division=0)
+    train_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
+    train_loss = running_loss / len(train_loader)
+    # mAP calculation
+    unique_labels = set(all_labels)
+    ap_scores = []
+    for label in unique_labels:
+        binary_labels = [1 if l == label else 0 for l in all_labels]
+        binary_outputs = [o[label] for o in all_outputs]
+        ap = average_precision_score(binary_labels, binary_outputs)
+        ap_scores.append(ap)
+    train_mAP = sum(ap_scores) / len(ap_scores) if ap_scores else 0.0
+    train_iou = sum(iou_scores) / len(iou_scores) if iou_scores else 0.0
+
+    # --------- Calculate Metrics and Loss (Validation) ---------
+    correct = 0
+    total = 0
+    all_preds = []
+    all_labels = []
+    all_outputs = []
+    running_loss = 0.0
+    with torch.no_grad():
+        for images, boxes, labels, _ in validation_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            loss = loss_fn(outputs, labels)
+            running_loss += loss.item()
+            _, preds = torch.max(outputs, 1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+            all_outputs.extend(outputs.cpu().numpy())
+            for pred, label in zip(preds, labels):
+                pred_np = pred.cpu().numpy().flatten()
+                label_np = label.cpu().numpy().flatten()
+                iou = jaccard_score(label_np, pred_np, average='binary', zero_division=0)
+                if iou is not None:
+                    iou_scores.append(iou)
+                    iou_scores.append(iou)
+    val_accuracy = correct / total
+    val_precision = precision_score(all_labels, all_preds, average='weighted', zero_division=0)
+    val_recall = recall_score(all_labels, all_preds, average='weighted', zero_division=0)
+    val_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
+    val_loss = running_loss / len(validation_loader)
+    unique_labels = set(all_labels)
+    ap_scores = []
+    for label in unique_labels:
+        binary_labels = [1 if l == label else 0 for l in all_labels]
+        binary_outputs = [o[label] for o in all_outputs]
+        ap = average_precision_score(binary_labels, binary_outputs)
+        ap_scores.append(ap)
+    val_mAP = sum(ap_scores) / len(ap_scores) if ap_scores else 0.0
+    val_iou = sum(iou_scores) / len(iou_scores) if iou_scores else 0.0
+
+    # --------- Print and Log Metrics ---------
+    print(f'Epoch {epoch_print}/{total_epochs}')
+    print(f'Train Loss: {train_loss}, Val Loss: {val_loss}')
+    print(f'Train Accuracy: {train_accuracy}, Val Accuracy: {val_accuracy}')
+    print(f'Train Precision: {train_precision}, Val Precision: {val_precision}')
+    print(f'Train Recall: {train_recall}, Val Recall: {val_recall}')
+    print(f'Train F1 Score: {train_f1}, Val F1 Score: {val_f1}')
+    print(f'Train mAP: {train_mAP}, Val mAP: {val_mAP}')
+    print(f'Train IoU: {train_iou}, Val IoU: {val_iou}')
+    if epoch_print == 1:
+        print(f'Model: {model}')
+        print(f'Loss Function: {loss_fn}')
+        print(f'Optimizer: {optimizer}')
+    writer.add_scalar('Loss/train', train_loss, epoch_print)
+    writer.add_scalar('Loss/val', val_loss, epoch_print)
+    writer.add_scalar('Accuracy/train', train_accuracy, epoch_print)
+    writer.add_scalar('Accuracy/val', val_accuracy, epoch_print)
+    writer.add_scalar('Precision/train', train_precision, epoch_print)
+    writer.add_scalar('Precision/val', val_precision, epoch_print)
+    writer.add_scalar('Recall/train', train_recall, epoch_print)
+    writer.add_scalar('Recall/val', val_recall, epoch_print)
+    writer.add_scalar('F1_Score/train', train_f1, epoch_print)
+    writer.add_scalar('F1_Score/val', val_f1, epoch_print)
+    writer.add_scalar('mAP/train', train_mAP, epoch_print)
+    writer.add_scalar('mAP/val', val_mAP, epoch_print)
+    writer.add_scalar('IoU/train', train_iou, epoch_print)
+    writer.add_scalar('IoU/val', val_iou, epoch_print)
+
+    # --------- Save Metrics to CSV ---------
+    csv_file = f'5_Results/{training_output_file.replace(".txt", ".csv")}'
+    file_exists = os.path.isfile(csv_file)
+    with open(csv_file, mode='a', newline='') as file:
+        csv_writer = csv.writer(file)
+        if not file_exists:
+            csv_writer.writerow(['Epoch', 'Train Loss', 'Val Loss', 'Train Accuracy', 'Val Accuracy',
+                                 'Train Precision', 'Val Precision', 'Train Recall', 'Val Recall',
+                                 'Train F1 Score', 'Val F1 Score', 'Train mAP', 'Val mAP', 'Train IoU', 'Val IoU'])
+        csv_writer.writerow([epoch_print, train_loss, val_loss, train_accuracy, val_accuracy,
+                             train_precision, val_precision, train_recall, val_recall,
+                             train_f1, val_f1, train_mAP, val_mAP, train_iou, val_iou])
+
+torch.save(model.state_dict(), 'model.pth')
+print("Model saved as model.pth")

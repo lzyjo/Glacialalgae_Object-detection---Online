@@ -56,7 +56,8 @@ train_dataset = GA_Dataset(data_folder,
                             keep_difficult=False)
 train_loader = torch.utils.data.DataLoader(train_dataset, 
                                            batch_size=batch_size, shuffle=True,
-                                            collate_fn=train_dataset.collate_fn, num_workers=workers,
+                                            collate_fn=train_dataset.collate_fn(batch_size),  # custom collate function
+                                            num_workers=workers,
                                             pin_memory=True)  # note that we're passing the collate function here
 
 # validation dataset and dataloader
@@ -65,7 +66,8 @@ validation_dataset = GA_Dataset(data_folder,
                                     keep_difficult=False) 
 validation_loader = torch.utils.data.DataLoader(validation_dataset,
                                                 batch_size=batch_size, shuffle=False,
-                                                collate_fn=validation_dataset.collate_fn, num_workers=workers,
+                                                collate_fn=validation_dataset.collate_fn(batch_size),  # custom collate function
+                                                num_workers=workers,
                                                 pin_memory=True)  # note that we're passing the collate function here
 
 # test dataset and dataloader
@@ -74,108 +76,10 @@ test_dataset = GA_Dataset(data_folder,
                             keep_difficult=False)
 test_loader = torch.utils.data.DataLoader(test_dataset,
                                            batch_size=batch_size, shuffle=False,
-                                            collate_fn=test_dataset.collate_fn, num_workers=workers,
+                                            collate_fn=test_dataset.collate_fn(batch_size), # custom collate function
+                                            num_workers=workers,
                                             pin_memory=True)  # note that we're passing the collate function here
 
-
-
-############################################### TRAINING #####################################################
-
-def train():
-    """
-    Main function to train the model.
-    """
-    main()
-    print("Training completed.")
-    print("Model saved as model.pth")
-
-if __name__ == '__main__':
-    train()
-
-
-def main():
-    """
-    Main function to initialize and execute the training process for a machine learning model.
-    The function performs the following steps:
-    1. Initializes training parameters, including the starting epoch, optimizer, and loss function.
-    2. Sets up a SummaryWriter for logging training metrics.
-    3. Iterates through the specified number of epochs, adjusting the learning rate at predefined epochs.
-    4. Trains the model for one epoch and calculates training and validation metrics.
-    5. Saves the metrics to a CSV file and logs them using the SummaryWriter.
-    6. Saves the trained model's state dictionary to a file.
-    Variables:
-    - start_epoch: The epoch to start training from.
-    - optimizer: The optimizer used for training.
-    - loss_fn: The loss function used for training.
-    - training_output_file: The name of the output file for training logs.
-    - train_loader: DataLoader for the training dataset.
-    - validation_loader: DataLoader for the validation dataset.
-    - total_epochs: Total number of epochs for training.
-    - decay_lr_at_epoch: List of epochs at which to decay the learning rate.
-    - decay_lr_to: The factor to decay the learning rate by.
-    Outputs:
-    - Logs training and validation metrics to a file and SummaryWriter.
-    - Saves the trained model's state dictionary as 'model.pth'.
-    """
-
-    start_epoch, optimizer, loss_fn = initialize_training()
-
-    training_output_file = args.training_output_file
-    writer = SummaryWriter(f'5_Results/{training_output_file}')
-    train_loader = train_loader
-    validation_loader = validation_loader
-
-    total_epochs = epoch_num
-    decay_lr_at_epoch = decay_lr_at_epochs
-
-    for epoch in range(start_epoch, total_epochs):
-        if epoch in decay_lr_at_epoch:
-            adjust_learning_rate(optimizer, decay_lr_to)
-
-        epoch = epoch + 1
-        train_one_epoch(epoch, total_epochs, writer, optimizer, loss_fn)
-        train_metrics = calculate_metrics_and_loss(train_loader, loss_fn)
-        val_metrics = calculate_metrics_and_loss(validation_loader, loss_fn)
-        save_metrics(epoch, total_epochs, 
-                     writer, training_output_file,
-                     train_metrics, val_metrics) #include metrics to CSV file
-        
-    torch.save(model.state_dict(), 'model.pth')
-    print("Model saved as model.pth")
-
-
-def train_one_epoch(epoch,total_epochs,
-                    writer, optimizer, loss_fn):
-    """
-    Trains the model for one epoch.
-    Args:
-        epoch (int): The current epoch number.
-        total_epochs (int): The total number of epochs.
-        writer (torch.utils.tensorboard.SummaryWriter): TensorBoard writer for logging metrics.
-        optimizer (torch.optim.Optimizer): Optimizer used to update model parameters.
-        loss_fn (callable): Loss function to compute the loss between predictions and labels.
-    Returns:
-        None
-    """
-
-    print(f'\nEpoch {epoch}/{total_epochs}')
-
-    model.train()
-    running_loss = 0.0
-
-    for i, (inputs, labels) in enumerate(train_loader):
-        optimizer.zero_grad()  # zero the parameter gradients
-        outputs = model(inputs)  # forward pass
-        loss = loss_fn(outputs, labels)  # compute loss
-        loss.backward()  # backward pass
-        optimizer.step()  # update weights
-
-        running_loss += loss.item()  # accumulates the loss for the current batch
-        if i % 1000 == 999:
-            avg_loss = running_loss / 1000
-            print(f'  batch {i + 1} loss: {avg_loss}')
-            writer.add_scalar('Loss/train', avg_loss, epoch * len(train_loader) + i + 1)
-            running_loss = 0.0
 
 
 
@@ -528,3 +432,107 @@ def save_metrics_to_csv(epoch, train_metrics, val_metrics, training_output_file)
         
         # Write metrics
         csv_writer.writerow([epoch] + train_metrics + val_metrics)
+
+
+
+
+############################################### TRAINING #####################################################
+
+def train_one_epoch(epoch,total_epochs,
+                    writer, optimizer, loss_fn):
+    """
+    Trains the model for one epoch.
+    Args:
+        epoch (int): The current epoch number.
+        total_epochs (int): The total number of epochs.
+        writer (torch.utils.tensorboard.SummaryWriter): TensorBoard writer for logging metrics.
+        optimizer (torch.optim.Optimizer): Optimizer used to update model parameters.
+        loss_fn (callable): Loss function to compute the loss between predictions and labels.
+    Returns:
+        None
+    """
+
+    print(f'\nEpoch {epoch}/{total_epochs}')
+
+    model.train()
+    running_loss = 0.0
+
+    for i, (inputs, labels) in enumerate(train_loader):
+        optimizer.zero_grad()  # zero the parameter gradients
+        outputs = model(inputs)  # forward pass
+        loss = loss_fn(outputs, labels)  # compute loss
+        loss.backward()  # backward pass
+        optimizer.step()  # update weights
+
+        running_loss += loss.item()  # accumulates the loss for the current batch
+        if i % 1000 == 999:
+            avg_loss = running_loss / 1000
+            print(f'  batch {i + 1} loss: {avg_loss}')
+            writer.add_scalar('Loss/train', avg_loss, epoch * len(train_loader) + i + 1)
+            running_loss = 0.0
+
+def main():
+    """
+    Main function to initialize and execute the training process for a machine learning model.
+    The function performs the following steps:
+    1. Initializes training parameters, including the starting epoch, optimizer, and loss function.
+    2. Sets up a SummaryWriter for logging training metrics.
+    3. Iterates through the specified number of epochs, adjusting the learning rate at predefined epochs.
+    4. Trains the model for one epoch and calculates training and validation metrics.
+    5. Saves the metrics to a CSV file and logs them using the SummaryWriter.
+    6. Saves the trained model's state dictionary to a file.
+    Variables:
+    - start_epoch: The epoch to start training from.
+    - optimizer: The optimizer used for training.
+    - loss_fn: The loss function used for training.
+    - training_output_file: The name of the output file for training logs.
+    - train_loader: DataLoader for the training dataset.
+    - validation_loader: DataLoader for the validation dataset.
+    - total_epochs: Total number of epochs for training.
+    - decay_lr_at_epoch: List of epochs at which to decay the learning rate.
+    - decay_lr_to: The factor to decay the learning rate by.
+    Outputs:
+    - Logs training and validation metrics to a file and SummaryWriter.
+    - Saves the trained model's state dictionary as 'model.pth'.
+    """
+
+    start_epoch, optimizer, loss_fn = initialize_training()
+
+    training_output_file = args.training_output_file
+    writer = SummaryWriter(f'5_Results/{training_output_file}')
+    train_loader = train_loader
+    validation_loader = validation_loader
+
+    total_epochs = epoch_num
+    decay_lr_at_epoch = decay_lr_at_epochs
+
+    for epoch in range(start_epoch, total_epochs):
+        if epoch in decay_lr_at_epoch:
+            adjust_learning_rate(optimizer, decay_lr_to)
+
+        epoch = epoch + 1
+        train_one_epoch(epoch, total_epochs, writer, optimizer, loss_fn)
+        train_metrics = calculate_metrics_and_loss(train_loader, loss_fn)
+        val_metrics = calculate_metrics_and_loss(validation_loader, loss_fn)
+        save_metrics(epoch, total_epochs, 
+                     writer, training_output_file,
+                     train_metrics, val_metrics) #include metrics to CSV file
+        
+    torch.save(model.state_dict(), 'model.pth')
+    print("Model saved as model.pth")
+
+
+def train():
+    """
+    Main function to train the model.
+    """
+    main()
+    print("Training completed.")
+    print("Model saved as model.pth")
+
+if __name__ == '__main__':
+    train()
+
+
+
+

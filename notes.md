@@ -35,6 +35,13 @@ will try to import from there causing problems...
 
 7. now need to work on custom dataloaders and datasets
 
+8. class PC_Dataset(Dataset) 
+'transforms' argument currently not tested or modified.. as current dataset does not need any data
+pre-processing before using in the dataloader
+however might be a consideration when distributing OD/OC model as an open-source tool? 
+TBC.. ! (https://docs.pytorch.org/tutorials/beginner/data_loading_tutorial.html)
+
+
 
 TO-DO-LIST
 
