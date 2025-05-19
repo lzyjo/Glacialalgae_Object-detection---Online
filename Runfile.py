@@ -207,7 +207,7 @@ create_data_lists(train_annotation_path=train_annotation_path,
 
 
 # TRAIN MODEL
-from utils import check_model_trained
+from train_custom import check_model_trained
 
 checkpoint_dir = r'6_Checkpoints'  # Directory where checkpoints are stored
 date_of_dataset_used = '20250513'  # Date of dataset used for training
@@ -218,9 +218,9 @@ check_model_trained(checkpoint_dir=checkpoint_dir,
 
 
 from hyperparameters import *
-from utils import manage_training_output_file, run_training_process
-results_folder = r'5_Results'
+from train_custom import manage_training_output_file
 date_of_dataset_used = '20250513'  # Date of dataset used for training
+results_folder = r'5_Results'  # Folder to save results
 training_output_file = manage_training_output_file(results_folder=results_folder,
                                                    date_of_dataset_used=date_of_dataset_used,
                                                    augmented=True)  # augmented_data if augmented dataset used
@@ -228,7 +228,6 @@ training_output_file = manage_training_output_file(results_folder=results_folder
 # TRAIN MODEL: Run the training process and save the output
 data_folder = r'4_JSON_folder\20250513_Augmented'
 date_of_dataset_used = '20250513'  # Date of dataset used for training
-
 
 
 subprocess.run(['python', 'train_custom.py',
@@ -239,24 +238,6 @@ subprocess.run(['python', 'train_custom.py',
 
 
            
-
-
-
-
-
-
-
-
-subprocess.run(['python', 'train.py', 
-                '--data_folder', '4_JSON_folder\\20250318_Augmented', 
-                '--date_of_dataset_used', '20250318', 
-                '--training_output_file', 'training_results_20250318_augmented.txt', 
-                '--save_dir', '6_Checkpoints'])
-
-run_training_process(data_folder=data_folder,
-                        date_of_dataset_used=date_of_dataset_used,
-                        training_output_file=training_output_file,
-                        save_dir=r'6_Checkpoints') #need to add augmentation boolean arg probably 
 
 # Return the relative file path of the training output file
 print(f"Training output file saved at: {os.path.relpath(training_output_file)}")

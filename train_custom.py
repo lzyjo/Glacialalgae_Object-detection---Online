@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
-from dataset import GA_Dataset
+from dataset import GA_Dataset, collate_fn
 from label_map import label_map_Classifier, label_map_OD
 import argparse
 from utils import adjust_learning_rate
@@ -13,6 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 import csv
 import os
 import shutil
+import time 
 
 
 ########################### ARGUMENTS ################################
@@ -56,7 +57,7 @@ train_dataset = GA_Dataset(data_folder,
                             keep_difficult=False)
 train_loader = torch.utils.data.DataLoader(train_dataset, 
                                            batch_size=batch_size, shuffle=True,
-                                            collate_fn=train_dataset.collate_fn(batch_size),  # custom collate function
+                                            collate_fn=train_dataset.collate_fn,  # custom collate function
                                             num_workers=workers,
                                             pin_memory=True)  # note that we're passing the collate function here
 
@@ -66,7 +67,7 @@ validation_dataset = GA_Dataset(data_folder,
                                     keep_difficult=False) 
 validation_loader = torch.utils.data.DataLoader(validation_dataset,
                                                 batch_size=batch_size, shuffle=False,
-                                                collate_fn=validation_dataset.collate_fn(batch_size),  # custom collate function
+                                                collate_fn=validation_dataset.collate_fn,  # custom collate function
                                                 num_workers=workers,
                                                 pin_memory=True)  # note that we're passing the collate function here
 
@@ -76,15 +77,154 @@ test_dataset = GA_Dataset(data_folder,
                             keep_difficult=False)
 test_loader = torch.utils.data.DataLoader(test_dataset,
                                            batch_size=batch_size, shuffle=False,
-                                            collate_fn=test_dataset.collate_fn(batch_size), # custom collate function
+                                            collate_fn=test_dataset.collate_fn, # custom collate function
                                             num_workers=workers,
                                             pin_memory=True)  # note that we're passing the collate function here
+
+
+
+########################################### DATALOADER CHECKING ####################################################
+
+def print_batch_structure(loader, loader_name="train_loader"):
+    """
+    Print the type and shape of each item in a batch from the given DataLoader.
+    Args:
+        loader: DataLoader to sample a batch from.
+        loader_name: Name of the loader (for display purposes).
+    """
+    print(f"\nSample batch from {loader_name} (collate_fn output):")
+    batch = next(iter(loader))
+    if isinstance(batch, (tuple, list)):
+        for idx, item in enumerate(batch):
+            if idx == 0:
+                print(f"  Batch item {idx}: type={type(item)}, shape={getattr(item, 'shape', 'N/A')}")
+            else:
+                if isinstance(item, list):
+                    for j, subitem in enumerate(item):
+                        print(f"  Batch item {idx}:")
+                        print(f"    Subitem {j}: type={type(subitem)}, shape={getattr(subitem, 'shape', 'N/A')}")
+                        print('-' * 50)
+                else:
+                    print(f"  Batch item {idx}: type={type(item)}, shape={getattr(item, 'shape', 'N/A')}")
+    else:
+        print(f"Type: {type(batch)}, shape={getattr(batch, 'shape', 'N/A')}")
+    # Note: This code prints the type and shape of each batch item. 
+    # If a batch item is a list (e.g., a list of tensors), it iterates through the list and prints the shape of each element inside.
+    # This avoids trying to access .shape on a list directly (which would be 'N/A'), and instead shows the shapes of the actual tensors inside the list.
 
 
 
 
 ################################################ INITIALIZE TRAINING ################################################
 
+def check_model_trained(checkpoint_dir='6_Checkpoints',
+                        date_of_dataset_used='20250318', 
+                        augmented=False,):
+    """
+    Check if a model has already been trained by verifying the presence of a checkpoint file.
+
+    Args:
+        date_of_dataset_used (str): The date of the dataset used.
+        augmented (bool): Whether the dataset is augmented. Defaults to False.
+        checkpoint_dir (str): Directory where checkpoints are stored. Defaults to '6_Checkpoints'.
+
+    """
+    # Get the list of all files in the checkpoint directory
+    if augmented: # Check if the dataset is augmented
+        date_of_dataset_used += '_Augmented' # Append '_Augmented' to the date string if the dataset is augmented
+
+    model_files = [f for f in os.listdir(checkpoint_dir) if date_of_dataset_used in f] # Filter the model files based on the updated date_of_dataset_used
+        
+    if model_files:
+        model_path = os.path.join(checkpoint_dir, model_files[0])
+        print(f'Model may be present. Please check: {model_path}')
+        print(f'Model checkpoint found at: {model_path}')
+    else:
+        print(f'No model checkpoint found for date: {date_of_dataset_used} in {checkpoint_dir}')
+
+if __name__ == '__main__':
+    check_model_trained(checkpoint_dir='6_Checkpoints',
+                        date_of_dataset_used='20250318', 
+                        augmented=False)
+
+
+
+def manage_training_output_file(results_folder, date_of_dataset_used,
+                                augmented=False,
+                                object_detector=False):
+    """
+    Manage the training output file by creating or appending to it, and write training parameters if not already present.
+
+    Args:
+        results_folder (str): Folder to store results.
+        date_of_dataset_used (str): Date of the dataset used for training.
+        augmented (bool): Whether the dataset is augmented.
+
+    Returns:
+        str: Path to the training output file.
+    """
+    if augmented:
+        date_of_dataset_used += '_Augmented'
+        augmentations_file = os.path.join('3_TrainingData', date_of_dataset_used, 'augmentations_used.txt')
+        if not os.path.exists(augmentations_file):
+            print(f"Error: The file {augmentations_file} does not exist.")
+            return
+
+    training_output_file = os.path.join(results_folder, f'training_results_{date_of_dataset_used}.txt')
+    os.makedirs(results_folder, exist_ok=True)  # Ensure the results folder exists
+
+    if object_detector:
+        object_detector = 'Object Detector'
+    else:
+        object_detector = 'Classifier'
+    
+    if augmented:
+        with open(augmentations_file, 'r') as f:
+            augmentation = [line.strip() for line in f if line.strip()]
+    else:
+        augmentation = None
+
+    params = [
+        f'Checkpoint: {checkpoint}',
+        f'Batch Size: {batch_size}',
+        f'Iterations: {iterations}',
+        f'Workers: {workers}',
+        f'Print Frequency: {print_freq}',
+        f'Learning Rate: {lr}',
+        f'Decay Learning Rate At: {decay_lr_at}',
+        f'Decay Learning Rate To: {decay_lr_to}',
+        f'Momentum: {momentum}',
+        f'Weight Decay: {weight_decay}',
+        f'Gradient Clipping: {grad_clip}',
+        f'Checkpoint Frequency: {checkpoint_freq}',
+        f'epoch_num: {epoch_num}',
+        f'Decay Learning Rate At Epochs: {decay_lr_at_epochs}',
+        '-' * 50,  # Separator
+        f'Number of Epochs: {epoch_num}',
+        f'Date of Dataset Used: {date_of_dataset_used}',
+        f'Augmentation: {augmentation}',
+        f'Object Detector: {object_detector}'
+    ]
+
+    if os.path.exists(training_output_file):
+        with open(training_output_file, 'r') as f:
+            content = f.readlines()
+        content = [line.strip() for line in content if line.strip()]
+
+        # Ensure params are written in the same order and not added at the end
+        updated_content = []
+        for param in params:
+            if param not in content:
+                updated_content.append(param)
+            else:
+                updated_content.append(content[content.index(param)])
+    else:
+        updated_content = params
+
+    with open(training_output_file, 'w') as f:
+        f.write('\n'.join(updated_content) + '\n\n')
+
+    return training_output_file
 
 def initialize_training():
     """
@@ -122,10 +262,10 @@ def initialize_training():
         print(f'\nLoaded checkpoint from epoch {checkpoint_data["epoch"] + 1}.\n')
         print(f"Optimizer: {checkpoint_data['optimizer']}")
         print(f"Loss function: {checkpoint_data['loss_fn']}")
-        return checkpoint_data['epoch'] + 1, checkpoint_data['optimizer'], checkpoint_data['loss_fn']
-
-
-
+        start_epoch = checkpoint_data['epoch'] + 1
+        optimizer = checkpoint_data['optimizer']
+        loss_fn = checkpoint_data['loss_fn']
+        return start_epoch, optimizer, loss_fn
 
 
 ################################################## CHECKPOINT  ##################################################
@@ -452,19 +592,67 @@ def train_one_epoch(epoch,total_epochs,
         None
     """
 
-    print(f'\nEpoch {epoch}/{total_epochs}')
-
     model.train()
     running_loss = 0.0
 
-    for i, (inputs, labels) in enumerate(train_loader):
-        optimizer.zero_grad()  # zero the parameter gradients
-        outputs = model(inputs)  # forward pass
-        loss = loss_fn(outputs, labels)  # compute loss
-        loss.backward()  # backward pass
-        optimizer.step()  # update weights
+# Batch Structure:
+# - The custom collate_fn for object detection returns a batch as (images, boxes, labels, difficulties),
+#   not just (inputs, labels). Ignoring bounding boxes and difficulties (as in the simple classification loop)
+#   will break object detection training.
+#
+# Object Detection Models:
+# - Models like Faster R-CNN (torchvision) require both images and a targets list (one dict per image,
+#   each with 'boxes' and 'labels') during training. The correct code prepares and passes this structure.
+#   The simple classification loop does not, leading to errors like:
+#   AssertionError: targets should not be none when in training mode.
+#
+# Device Handling:
+# - The correct code ensures all tensors (images, boxes, labels) are moved to the correct device (CPU or GPU).
+#   The simple loop only moves inputs and labels, which is not enough for detection tasks.
+#
+# Classification vs Detection:
+# - The correct code handles both object detection (object_detector == 'yes') and classification
+#   (object_detector == 'no') by branching appropriately. The simple loop only works for classification.
+#
+# Summary:
+# - The correct code unpacks the batch according to the custom collate function, prepares the data in the
+#   format required by object detection models, and handles device placement for all relevant tensors.
+#   The simple classification loop is only suitable for basic classification tasks and will not work for object detection.
 
+    for i, (images, boxes, labels, _) in enumerate(
+        tqdm(train_loader, 
+             desc=f'Epoch {epoch}/{total_epochs}', 
+             unit='batch')
+            ):
+        
+        images = images.to(device) # Move data to device
+
+        if args.object_detector == 'yes':  # Torchvision models expect targets to be a list of dicts with 'boxes' and 'labels' keys
+            targets = [] # targets should be a list of dicts, each with 'boxes' and 'labels'
+            for b, l in zip(boxes, labels): #loop through each pair of boxes and labels
+                targets.append({ #for each image, create a dict with 'boxes' and 'labels'
+                    'boxes': b.to(device),  
+                    'labels': l.to(device)
+                })
+            optimizer.zero_grad() #clear gradients 
+            loss_dict = model(images, targets) # For torchvision models, loss_dict is a dict of losses
+                                            # this is also the forward pass
+                                            # model(images, targets) is thus the forward pass and loss calculation
+            loss = sum(loss for loss in loss_dict.values())
+
+        else: #Simple classification loop
+            if isinstance(labels, (list, tuple)): #handles case where labels is a list of tensors (multi-label) and also when labels is a single tensor 
+                labels = [l.to(device) for l in labels]
+            else:
+                labels = labels.to(device)
+            optimizer.zero_grad() #clear gradients
+            outputs = model(images) #forward pass
+            loss = loss_fn(outputs, labels) #loss computation (separately unlike in the object detection case)
+
+        loss.backward() #backward pass
+        optimizer.step() #update weights
         running_loss += loss.item()  # accumulates the loss for the current batch
+
         if i % 1000 == 999:
             avg_loss = running_loss / 1000
             print(f'  batch {i + 1} loss: {avg_loss}')
@@ -531,7 +719,7 @@ def train():
     print("Model saved as model.pth")
 
 if __name__ == '__main__':
-    train()
+    train() #run the training function when the module is run as a script
 
 
 
