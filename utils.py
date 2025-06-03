@@ -9,15 +9,19 @@ import torch
 import random
 import torchvision.transforms.functional as FT
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.metrics import average_precision_score, jaccard_score
 import pandas as pd
 from datetime import datetime
 from label_map import label_map_Classifier
 from label_map import  label_map_OD
-from hyperparameters import * 
+from hyperparameters import *
+from hyperparameters import optimizer, loss_fn, model
 import subprocess
 
 device = torch.device("cpu")
 
+optimizer = optimizer
 
 ####################################################### DATA HANDLING ############################################################
 """
@@ -273,7 +277,7 @@ def process_raw_data(source_folders):
     return datasets
 
 
-def process_standard_data(source_folders, train_test_val, include_augmentation_list=False):
+def process_standard_data(source_folders, training_data_folder, train_test_val, include_augmentation_list=False):
     """
     Processes standard data by identifying source folders for images and annotations.
 
@@ -322,35 +326,50 @@ def process_standard_data(source_folders, train_test_val, include_augmentation_l
         # as this makes this code unusable for folders which do not contain train test val folders at all (2_DataAugmentation folders)
         
     if include_augmentation_list:
-        save_augmentations_used(datasets, source_folders)
+        save_augmentations_used(datasets, training_data_folder)
 
     print("Datasets found:")
     for dataset in datasets:
         print(f" - {dataset['date_of_dataset_used']}")
     return datasets
 
-def save_augmentations_used(datasets, source_folders):
+def save_augmentations_used(datasets, training_data_folder):
     """
     Save a list of augmentations used to a text file in the appropriate folder.
 
     Args:
         datasets (list): List of dataset dictionaries.
-        source_folders (list): List of source folder paths.
+        training_data_folder (str): Path to the training data folder.
     """
-    augmentations_used = [dataset["date_of_dataset_used"] for dataset in datasets]
-    print("List of augmentations used:", augmentations_used)
+    # Creates a list of augmentations used from datasets
+    # Excludes 'train', 'test', and 'val' from the list
+    augmentations_used = [
+        dataset["date_of_dataset_used"]
+        for dataset in datasets
+        if dataset["date_of_dataset_used"].strip().lower() not in {"train", "test", "val"}
+    ]
 
-    training_data_folder = next(
-        (folder for folder in source_folders if os.path.basename(folder).startswith('2_DataAugmentation')), None
-    )
+    # Determine the output file path for saving augmentations used
     if training_data_folder:
         output_file = os.path.join(training_data_folder, "augmentations_used.txt")
+    else:
+        print("No training folder found. Cannot save augmentations.")
+        return
+
+    if output_file and os.path.exists(output_file):
+        print(f"Augmentations file already exists at {output_file}. Skipping save.")
+        return
+
+    if augmentations_used:
+        print("List of augmentations used:", augmentations_used)
+
+    if output_file:
         os.makedirs(training_data_folder, exist_ok=True)
         with open(output_file, "w") as f:
             f.write("\n".join(augmentations_used))
         print(f"Augmentations saved to {output_file}")
     else:
-        print("Warning: No folder starting with '2_DataAugmentation' found.")
+        print("Warning: No training folder found.")
 
 
 
@@ -477,7 +496,7 @@ def extract_files(date_of_dataset_used,
     num_annotations_moved = num_annotations_end - num_annotations_start
 
     # Verify if the counts add up
-    if num_annotations_moved == (counter -1):  
+    if num_annotations_end == (counter -1):  
         print(f"Files extracted from {date_of_dataset_used} to {annotations_folder}/ "
               f"Start: {num_annotations_start}\n"
               f"Moved: {num_annotations_moved}\n"
@@ -487,7 +506,7 @@ def extract_files(date_of_dataset_used,
               f"Start: {num_annotations_start}\n"
               f"Moved: {num_annotations_moved}\n"
               f"End: {num_annotations_end}\n"
-              f"Expected Moved: {counter - 1}")
+              f"Expected Total Moved: {counter - 1}")
 
     print("-" * 20)  # Add a separator line for better readability
 
@@ -529,7 +548,7 @@ def extract_files(date_of_dataset_used,
         print(f"Start: {num_images_start}")
         print(f"Moved: {num_images_moved}")
         print(f"End: {num_images_end}")
-        print(f"Expected Moved: {counter - 1}")
+        print(f"Expected Total Moved: {counter - 1}")
     
     print("-" * 50)  # Add a separator line for better readability
 
@@ -607,9 +626,9 @@ if __name__ == '__main__':
                     
 
 def extraction_pipeline(source_folders, 
-                        annotations_folder, images_folder,
-                        train_test_val=None, 
+                        training_data_folder, annotations_folder, images_folder,
                         raw_data=False,
+                        train_test_val=None, 
                         include_augmentation_list=False):
     """
     Extracts files from multiple source folders and organizes them into specified annotations and images folders.
@@ -629,7 +648,7 @@ def extraction_pipeline(source_folders,
     if raw_data:
         datasets = process_raw_data(source_folders)
     else:
-        datasets = process_standard_data(source_folders, train_test_val, include_augmentation_list)
+        datasets = process_standard_data(source_folders, training_data_folder, train_test_val, include_augmentation_list)
 
     if datasets:
         confirm_and_extract(datasets, annotations_folder, images_folder)
@@ -645,10 +664,11 @@ if __name__ == "__main__":
     # Define the destination folders for annotations and images
     annotations_folder = r'3_TrainingData\20250318_Augmented\Split\train\annotations'
     images_folder = r'3_TrainingData\20250318_Augmented\Split\train\images'
+    training_data_folder = r'3_TrainingData\20250318_Augmented'  # Define the training data folder
 
     # Call the function to extract files from multiple folders
     extraction_pipeline(source_folders, 
-                        annotations_folder, images_folder,
+                        training_data_folder, annotations_folder, images_folder,
                         train_test_val=['train', 'test', 'val'], 
                         raw_data=False,
                         include_augmentation_list=True)
@@ -876,9 +896,8 @@ def parse_annotation(annotation_file, label_map): #FILE not path, because path i
         labels.append(label_map[label])
         difficulties.append(difficult)
 
-    return {'boxes': boxes, 'labels': labels, 'difficulties': difficulties}
-
-
+    # print({'boxes': boxes, 'labels': labels, 'difficulties': difficulties})
+    return boxes, labels, difficulties
 
 def create_data_lists(train_annotation_path, train_image_path, 
                       test_annotation_path, test_image_path,
@@ -1143,7 +1162,41 @@ if __name__ == '__main__':
 
 
 
-######################################################### MODEL TRAINING ###########################################################
+
+
+########################################### DATALOADER CHECKING ####################################################
+
+def print_batch_structure(loader, loader_name="train_loader"):
+    """
+    Print the type and shape of each item in a batch from the given DataLoader.
+    Args:
+        loader: DataLoader to sample a batch from.
+        loader_name: Name of the loader (for display purposes).
+    """
+    print(f"\nSample batch from {loader_name} (collate_fn output):")
+    batch = next(iter(loader))
+    if isinstance(batch, (tuple, list)):
+        for idx, item in enumerate(batch):
+            if idx == 0:
+                print(f"  Batch item {idx}: type={type(item)}, shape={getattr(item, 'shape', 'N/A')}")
+            else:
+                if isinstance(item, list):
+                    for j, subitem in enumerate(item):
+                        print(f"  Batch item {idx}:")
+                        print(f"    Subitem {j}: type={type(subitem)}, shape={getattr(subitem, 'shape', 'N/A')}")
+                        print('-' * 50)
+                else:
+                    print(f"  Batch item {idx}: type={type(item)}, shape={getattr(item, 'shape', 'N/A')}")
+    else:
+        print(f"Type: {type(batch)}, shape={getattr(batch, 'shape', 'N/A')}")
+    # Note: This code prints the type and shape of each batch item. 
+    # If a batch item is a list (e.g., a list of tensors), it iterates through the list and prints the shape of each element inside.
+    # This avoids trying to access .shape on a list directly (which would be 'N/A'), and instead shows the shapes of the actual tensors inside the list.
+
+
+
+
+################################################ INITIALIZE TRAINING ################################################
 
 def check_model_trained(checkpoint_dir='6_Checkpoints',
                         date_of_dataset_used='20250318', 
@@ -1170,10 +1223,6 @@ def check_model_trained(checkpoint_dir='6_Checkpoints',
     else:
         print(f'No model checkpoint found for date: {date_of_dataset_used} in {checkpoint_dir}')
 
-if __name__ == '__main__':
-    check_model_trained(checkpoint_dir='6_Checkpoints',
-                        date_of_dataset_used='20250318', 
-                        augmented=False)
 
 
 
@@ -1255,52 +1304,8 @@ def manage_training_output_file(results_folder, date_of_dataset_used,
     return training_output_file
 
 
+################################################## CHECKPOINT  ##################################################
 
-def run_training_process(data_folder, 
-                         date_of_dataset_used, 
-                         training_output_file, 
-                         save_dir=r'6_Checkpoints'):
-    """
-    Run the training process and save the output to a file.
-
-    Args:
-        data_folder (str): Path to the data folder.
-        date_of_dataset_used (str): Date of the dataset used for training.
-        training_output_file (str): Path to the file where training output will be saved.
-        save_dir (str): Directory to save checkpoints.
-    """
-    with open(training_output_file, 'a') as f:
-        try:
-            result = subprocess.run(['python', 'train.py', 
-                        '--data_folder', data_folder,
-                        '--date_of_dataset_used', date_of_dataset_used,
-                        '--object_detector', 'yes',
-                        '--save_dir', save_dir],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True)
-            if result.stdout:
-                f.write(result.stdout)
-            if result.stderr:
-                f.write("Standard Error:\n")
-                f.write(result.stderr)
-        except subprocess.CalledProcessError as e:
-            print(f"Error occurred during training: {e}")
-            f.write(f"Error occurred during training: {e}\n")
-            if e.stdout:
-                f.write("Standard Output:\n")
-                f.write(e.stdout + '\n')
-            if e.stderr:
-                f.write("Standard Error:\n")
-                f.write(e.stderr + '\n')
-
-if __name__ == "__main__":
-    # Run the training process and save the output
-    run_training_process(data_folder=data_folder,
-                         date_of_dataset_used=date_of_dataset_used,
-                         training_output_file=training_output_file,
-                         save_dir=r'6_Checkpoints')
-                                  
 
 def save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir):
     """
@@ -1313,65 +1318,296 @@ def save_checkpoint(epoch, model, optimizer, date_of_dataset_used, save_dir):
     """
     state = {'epoch': epoch,
              'model': model,
-             'optimizer': optimizer}
-    filename = os.path.join(save_dir, f'{date_of_dataset_used}_checkpoint_{epoch}.pth.tar')
+             'optimizer': optimizer,
+             'avg_loss': avg_loss,
+             'accuracy' : accuracy,
+             'precision' : precision,
+             'recall' : recall,
+             'f1' : f1,
+             'mAP' : mAP,
+             'IoU' : IoU}
     
+    filename = os.path.join(save_dir, f'{date_of_dataset_used}_checkpoint_{epoch}.pth.tar')
+
     torch.save(state, filename)
 
 
-def keep_checkpoints(checkpoint_dir, log_file, date_of_dataset_used):
+
+def manage_top_checkpoints(epoch, model, optimizer, metrics, date_of_dataset_used, save_dir):
     """
-    Keeps only the checkpoints corresponding to the last epoch and the epoch with the lowest loss.
+    Save one checkpoint with the highest score for each of the following metrics:
+    avg_loss, accuracy, precision, recall, f1, mAP, IoU.
+
+    :param epoch: epoch number
+    :param model: model
+    :param optimizer: optimizer
+    :param metrics: dictionary containing avg_loss, accuracy, precision, recall, f1, mAP, IoU
+    :param date_of_dataset_used: date of the dataset used for training
+    :param save_dir: directory where the checkpoint will be saved
+    """
+    # Save the current checkpoint
+    save_checkpoint(epoch, model, optimizer, metrics, date_of_dataset_used, save_dir)
+
+    # Track checkpoints
+    checkpoint_files = [f for f in os.listdir(save_dir) if f.endswith('.pth.tar')]
+    checkpoint_files = [os.path.join(save_dir, f) for f in checkpoint_files]
+
+    # Initialize dictionaries to store the best checkpoint for each metric
+    best_checkpoints = {
+        'avg_loss': None,
+        'accuracy': None,
+        'precision': None,
+        'recall': None,
+        'f1': None,
+        'mAP': None,
+        'IoU': None
+    }
+    best_scores = {
+        'avg_loss': float('inf'),  # Lower is better
+        'accuracy': float('-inf'),  # Higher is better
+        'precision': float('-inf'),
+        'recall': float('-inf'),
+        'f1': float('-inf'),
+        'mAP': float('-inf'),
+        'IoU': float('-inf')
+    }
+
+    # Evaluate each checkpoint
+    for file in checkpoint_files:
+        checkpoint = torch.load(file)
+        for metric in best_scores:
+            score = checkpoint[metric]
+            if (metric == 'avg_loss' and score < best_scores[metric]) or (metric != 'avg_loss' and score > best_scores[metric]):
+                best_scores[metric] = score
+                best_checkpoints[metric] = file
+
+    # Copy the best checkpoints to the 'Top_checkpoints' directory
+    top_checkpoints_dir = r'6_Checkpoints\Top_checkpoints'
+    os.makedirs(top_checkpoints_dir, exist_ok=True)
+    for metric, file in best_checkpoints.items():
+        if file:
+            destination = os.path.join(top_checkpoints_dir, os.path.basename(file))
+            if not os.path.exists(destination):
+                shutil.copy(file, destination)
+
+    # Remove all checkpoints except the best ones
+    best_files = set(best_checkpoints.values())
+    for file in checkpoint_files:
+        if file not in best_files:
+            os.remove(file)
+
+
+
+################################################## METRICS CALCULATION ##################################################
+
+def calculate_metrics_and_loss(loader, loss_fn):
+    """
+    Calculate accuracy, precision, recall, F1 score, loss, mAP, and IoU for a given data loader.
+    """
+
+    # Initialize variables
+    correct = 0
+    total = 0
+    all_preds = []
+    all_labels = []
+    all_outputs = []
+    running_loss = 0.0
+    iou_scores = []
+
+    with torch.no_grad():  # Disable gradient calculation for evaluation
+        for inputs, labels in loader:
+            inputs, labels = inputs.to(device), labels.to(device)  # Move data to the same device as the model
+            outputs = model(inputs)  # forward pass
+            loss = loss_fn(outputs, labels)  # compute loss
+            running_loss += loss.item()  # accumulate the loss for the current batch
+
+            _, preds = torch.max(outputs, 1)  # get the predicted class
+            correct += (preds == labels).sum().item()  # count correct predictions
+            total += labels.size(0)  # total number of samples
+            all_preds.extend(preds.cpu().numpy())  # get predicted labels
+            all_labels.extend(labels.cpu().numpy())  # get true labels
+            all_outputs.extend(outputs.cpu().numpy())  # get raw outputs for mAP calculation
+
+            # Calculate IoU for each sample
+            for pred, label in zip(preds, labels):
+                iou = calculate_iou(pred, label)
+                if iou is not None:
+                    iou_scores.append(iou)
+
+    accuracy = correct / total
+    precision = precision_score(all_labels, all_preds, average='weighted', zero_division=0)
+    recall = recall_score(all_labels, all_preds, average='weighted', zero_division=0)
+    f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
+    avg_loss = running_loss / len(loader)
+    mAP = calculate_mAP(all_labels, all_outputs)  # mAP calculation
+    mean_iou = sum(iou_scores) / len(iou_scores) if iou_scores else 0.0    # Calculate mean IoU
+
+    # Print metrics
+    print(f'Accuracy: {accuracy:.4f}')
+    print(f'Precision: {precision:.4f}')
+    print(f'Recall: {recall:.4f}')
+    print(f'F1 Score: {f1:.4f}')
+    print(f'Average Loss: {avg_loss:.4f}')
+    print(f'mAP: {mAP:.4f}')
+    print(f'Mean IoU: {mean_iou:.4f}')
+
+    return accuracy, precision, recall, f1, avg_loss, mAP, mean_iou
+
+def precision_score(y_true, y_pred):
+    """
+    Calculate precision score for binary classification.
+
+    :param y_true: True labels
+    :param y_pred: Predicted labels
+    :return: Precision score
+    """
+    return precision_score(y_true, y_pred, average='binary', zero_division=0)
+
+def recall_score(y_true, y_pred):
+    """
+    Calculate recall score for binary classification.
+
+    :param y_true: True labels
+    :param y_pred: Predicted labels
+    :return: Recall score
+    """
+    return recall_score(y_true, y_pred, average='binary', zero_division=0)
+
+def f1_score(y_true, y_pred): 
+    """
+    Calculate F1 score for binary classification.
+
+    :param y_true: True labels
+    :param y_pred: Predicted labels
+    :return: F1 score
+    """
+    return f1_score(y_true, y_pred, average='binary', zero_division=0)
+
+def calculate_iou(pred, label):
+    """
+    Calculate Intersection over Union (IoU) for a single prediction and label using scikit-learn.
+
+    :param pred: Predicted binary mask or bounding box (1D array or flattened binary mask).
+    :param label: Ground truth binary mask or bounding box (1D array or flattened binary mask).
+    :return: IoU value.
+    """
+    pred = pred.cpu().numpy().flatten()  # Convert tensor to numpy and flatten
+    label = label.cpu().numpy().flatten()  # Convert tensor to numpy and flatten
+    return jaccard_score(label, pred, average='binary', zero_division=0)
+
+
+def calculate_mAP(all_labels, all_outputs):
+    """
+    Calculate AP (Average Precision) for each class and mAP (mean Average Precision).
+
+    :param all_labels: List of true labels.
+    :param all_outputs: List of model outputs.
+    :return: mAP (mean Average Precision).
+    """
+    # Calculate AP (Average Precision) for each class
+    unique_labels = set(all_labels)
+    ap_scores = []
+    for label in unique_labels:
+        binary_labels = [1 if l == label else 0 for l in all_labels]
+        binary_outputs = [o[label] for o in all_outputs]
+        ap = average_precision_score(binary_labels, binary_outputs)
+        ap_scores.append(ap)
+
+    # Calculate mAP (mean Average Precision)
+    mAP = sum(ap_scores) / len(ap_scores) if ap_scores else 0.0
+    return mAP
+
+
+
+
+
+
+################################################### METRICS LOGGING ##################################################
+
+def save_metrics(epoch, total_epochs, 
+                    writer, training_output_file,
+                    train_metrics, val_metrics):
+    """
+    Logs and saves training and validation metrics for each epoch.
     Args:
-        checkpoint_dir (str): Directory where checkpoint files are stored.
-        log_file (str): Path to the log file containing epoch loss information.
-        date_of_dataset_used (str): Date string used to identify relevant checkpoint files.
-    Returns:
-        None
-    This function reads the log file to find the epoch with the lowest loss and the last epoch.
-    It then removes all checkpoint files in the specified directory except for those corresponding
-    to the last epoch and the epoch with the lowest loss.
+        epoch (int): The current epoch number.
+        total_epochs (int): The total number of epochs.
+        writer (torch.utils.tensorboard.SummaryWriter): TensorBoard writer for logging metrics.
+        training_output_file (str): Path to the file where metrics will be saved as CSV.
+        train_metrics (tuple): A tuple containing training metrics in the following order:
+            (accuracy, precision, recall, F1 score, loss, mAP, IoU).
+        val_metrics (tuple): A tuple containing validation metrics in the following order:
+            (accuracy, precision, recall, F1 score, loss, mAP, IoU).
+    Prints:
+        - Training and validation metrics for the current epoch.
+        - Model, loss function, and optimizer details (only during the first epoch).
+    Logs:
+        - Training and validation metrics to TensorBoard.
+    Saves:
+        - Training and validation metrics to a CSV file.
+    Note:
+        The function assumes that `model`, `loss_fn`, and `optimizer` are defined globally.
+        Ensure that these variables are accessible within the function.
     """
-    # Read the log file to find the epoch with the lowest loss
-    with open(log_file, 'r') as f:
-        lines = f.readlines()[8:]
-    
-    epoch_losses = {}
-    for line in lines:
-        if "Epoch" in line and "Loss" in line:
-            parts = line.split()
-            # Extract the epoch number from the format "Epoch: [52][0/17]"
-            epoch_str = parts[1] # Extract the epoch number from the format "Epoch: [52][0/17]"
-            epoch_str = epoch_str[:-6]  # Remove the last 6 characters
-            epoch = int(epoch_str.strip('[]'))
-            # Extract the loss value from the format "Loss: 0.000"
-            loss_str = parts[11]
-            loss = float(loss_str)
-            # Store the loss value for this epoch
-            epoch_losses[epoch] = loss 
-    
-    if not epoch_losses:
-        print("No epoch loss information found in log file.")
-        return
-    
-    lowest_loss_epoch = min(epoch_losses, key=epoch_losses.get)
-    print(f"Lowest loss epoch: {lowest_loss_epoch} with loss: {epoch_losses[lowest_loss_epoch]}")
+    model.eval()
 
-    # Get the last epoch
-    last_epoch = max(epoch_losses.keys())
-    print(f"Last epoch: {last_epoch}")
+    print(f'Epoch {epoch}/{total_epochs}')
 
-    # Remove all checkpoints except the last epoch and the lowest loss epoch
-    for filename in os.listdir(checkpoint_dir):
-        if date_of_dataset_used not in filename:
-            continue
+    train_accuracy, train_precision, train_recall, train_f1, train_loss, train_mAP, train_iou = train_metrics
+    val_accuracy, val_precision, val_recall, val_f1, val_loss, val_mAP, val_iou = val_metrics
 
-        epoch_num = int(filename.split('_')[-1].split('.')[0])
+    # Print metrics
+    print(f'Train Loss: {train_loss}, Val Loss: {val_loss}')
+    print(f'Train Accuracy: {train_accuracy}, Val Accuracy: {val_accuracy}')
+    print(f'Train Precision: {train_precision}, Val Precision: {val_precision}')
+    print(f'Train Recall: {train_recall}, Val Recall: {val_recall}')
+    print(f'Train F1 Score: {train_f1}, Val F1 Score: {val_f1}')
+    print(f'Train mAP: {train_mAP}, Val mAP: {val_mAP}')
+    print(f'Train IoU: {train_iou}, Val IoU: {val_iou}')
 
-        if epoch_num != last_epoch and epoch_num != lowest_loss_epoch:
-            os.remove(os.path.join(checkpoint_dir, filename))
-            print(f"Removed checkpoint: {filename}")
+    # Print model, loss function, and optimizer details once
+    if epoch == 1:
+        print(f'Model: {model}')
+        print(f'Loss Function: {loss_fn}')
+        print(f'Optimizer: {optimizer}')
 
+    # Log metrics to TensorBoard
+    writer.add_scalar('Loss/train', train_loss, epoch)
+    writer.add_scalar('Loss/val', val_loss, epoch)
+    writer.add_scalar('Accuracy/train', train_accuracy, epoch)
+    writer.add_scalar('Accuracy/val', val_accuracy, epoch)
+    writer.add_scalar('Precision/train', train_precision, epoch)
+    writer.add_scalar('Precision/val', val_precision, epoch)
+    writer.add_scalar('Recall/train', train_recall, epoch)
+    writer.add_scalar('Recall/val', val_recall, epoch)
+    writer.add_scalar('F1_Score/train', train_f1, epoch)
+    writer.add_scalar('F1_Score/val', val_f1, epoch)
+    writer.add_scalar('mAP/train', train_metrics[5], epoch)
+    writer.add_scalar('mAP/val', val_metrics[5], epoch)
+    writer.add_scalar('IoU/train', train_metrics[6], epoch)
+    writer.add_scalar('IoU/val', val_metrics[6], epoch)
+
+    # Save metrics to csv
+    save_metrics_to_csv(epoch, train_metrics, val_metrics, training_output_file)
+
+
+def save_metrics_to_csv(epoch, train_metrics, val_metrics, training_output_file):
+    """
+    Save training and validation metrics to a CSV file.
+    """
+    csv_file = f'5_Results/{training_output_file.replace(".txt", ".csv")}'
+    file_exists = os.path.isfile(csv_file)
+
+    with open(csv_file, mode='a', newline='') as file:
+        csv_writer = csv.writer(file)
+        if not file_exists:
+            # Write header if file does not exist
+            csv_writer.writerow(['Epoch', 'Train Loss', 'Val Loss', 'Train Accuracy', 'Val Accuracy',
+                                 'Train Precision', 'Val Precision', 'Train Recall', 'Val Recall',
+                                 'Train F1 Score', 'Val F1 Score', 'Train mAP', 'Val mAP', 'Train IoU', 'Val IoU'])
+        
+        # Write metrics
+        csv_writer.writerow([epoch] + train_metrics + val_metrics)
 
 ######################################################### OTHERS ###########################################################
 

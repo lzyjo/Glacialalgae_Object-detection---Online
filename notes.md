@@ -41,7 +41,19 @@ pre-processing before using in the dataloader
 however might be a consideration when distributing OD/OC model as an open-source tool? 
 TBC.. ! (https://docs.pytorch.org/tutorials/beginner/data_loading_tutorial.html)
 
+9. Extraction pipeline problems:
+- when printing datasets, Do you want to proceed with extracting files? (yes/no): has to be asked twice, because if only 1, then it returns a blank space as an answer automatically for some reason
+- repeated datasets returned in terminal (seems to be 'surface' level, it is returned but dataset is nmot extracted twice even if shown twice for example)
 
+10. datalaoder creation location
+currently in train_custom.py... but should consider doing it in runfile? where is the best place to put it?
+
+11. importing custom collate_fn()
+e 'collate_fn'  does not need to be imported (ImportError: cannot import name 'collate_fn' from 'dataset' (E:\JOEY\Glacialalgae_Object-detection---Server\dataset.py)) but why?
+
+12. Separation for main train function and training set up functions (including dataloaders and hyperparams)
+
+13. why do files never save unless i literally click ctrl + s? crt +s simple shifts whatever changes to the change list (not staged)
 
 TO-DO-LIST
 

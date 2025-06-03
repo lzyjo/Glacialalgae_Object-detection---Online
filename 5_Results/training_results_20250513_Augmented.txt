@@ -15,6 +15,6 @@ Decay Learning Rate At Epochs: [500, 800]
 --------------------------------------------------
 Number of Epochs: 1000
 Date of Dataset Used: 20250513_Augmented
-Augmentation: ['20250513_colorjitter', '20250513_colorjitter_randomhorizontalflip', '20250513_colorjitter_randomhorizontalflip_randomverticalflip', '20250513_colorjitter_randomverticalflip', '20250513_randomhorizontalflip', '20250513_randomhorizontalflip_randomverticalflip', '20250513_randomverticalflip']
+Augmentation: ['train', '20250513_colorjitter', '20250513_colorjitter_randomhorizontalflip', '20250513_colorjitter_randomhorizontalflip_randomverticalflip', '20250513_colorjitter_randomverticalflip', '20250513_randomhorizontalflip', '20250513_randomhorizontalflip_randomverticalflip', '20250513_randomverticalflip']
 Object Detector: Classifier
 

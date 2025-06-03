@@ -1,4 +1,3 @@
-train
 20250513_colorjitter
 20250513_colorjitter_randomhorizontalflip
 20250513_colorjitter_randomhorizontalflip_randomverticalflip

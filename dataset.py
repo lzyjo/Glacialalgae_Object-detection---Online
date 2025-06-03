@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 import json
@@ -6,6 +7,8 @@ from PIL import Image
 from utils import transform
 import xml.etree.ElementTree as ET
 from utils import parse_annotation
+from label_map import label_map_Classifier
+from label_map import  label_map_OD
 
 
 """
@@ -17,164 +20,211 @@ from utils import parse_annotation
 
 
 
-
 class PC_Dataset(Dataset):
     """
-    Phase contrast dataset.
+    PyTorch Dataset for phase contrast images with object detection annotations.
 
     Expected folder structure:
-    dataset_folder/
-        train/
-            annotations/
-            images/
-        test/
-            annotations/
-            images/
-        val/
-            annotations/
-            images/
+        dataset_folder/
+            train/
+                annotations/
+                images/
+            test/
+                annotations/
+                images/
+            val/
+                annotations/
+                images/
+
+    Each sample consists of an image and its corresponding annotation file.
     """
 
     def __init__(self, 
                  dataset_folder, 
-                 root_dir, transform=None): #transforms needed if samples are not of the same size
-                                        # however, in this case, all images are of the same size
-                                        # something to think about in terms of usability for other datasets
+                 split='train',
+                 transform=None,
+                 keep_difficult=False):
         """
-        Arguments:
-            csv_file (string): Path to the csv file with annotations.
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
+        Initialize the PC_Dataset.
+
+        Args:
+            dataset_folder (str): Path to the root dataset directory. This directory should contain subfolders for each split
+                      ('train', 'test', 'val'), each with 'images' and 'annotations' subdirectories.
+            split (str, optional): Dataset split to use. Must be one of 'train', 'test', or 'val'. Default is 'train'.
+            transform (callable, optional): Optional transformation function to apply to each sample (image, boxes, labels, difficulties).
+            keep_difficult (bool, optional): Whether to keep objects marked as 'difficult' in the annotations. Default is False.
+
+        Raises:
+            AssertionError: If the split is not one of 'train', 'test', or 'val'.
+            FileNotFoundError: If the required image or annotation directories do not exist.
+            AssertionError: If the number of images and annotation files do not match.
+
+        The dataset expects the following directory structure:
+            dataset_folder/
+            train/
+                images/
+                annotations/
+            test/
+                images/
+                annotations/
+            val/
+                images/
+                annotations/
         """
         
-        for split in ['train', 'test', 'val']: 
-            annotation_folder = os.path.join(dataset_folder, split, "annotations")
-            image_folder = os.path.join(dataset_folder, split, "images")
-            
-            if os.path.isdir(annotation_folder) and os.path.isdir(image_folder):
-                self.datasets[split] = {
-                    "annotations": annotation_folder,
-                    "images": image_folder
-                }
-            else:
-                raise FileNotFoundError(f"Missing directory: {annotation_folder} or {image_folder}")
+        self.dataset_folder = dataset_folder  # Root folder of the dataset
+        self.keep_difficult = keep_difficult  # Whether to keep difficult objects in the dataset
 
-        self.root_dir = root_dir
+        self.split = split.lower() 
+
+        assert split in ['train', 'test', 'val'], "split must be 'train', 'test', or 'val'"
+
+        # Read image and annotation file names from folders (not using .json files)
+        annotation_folder = os.path.join(dataset_folder, split, "annotations")
+        image_folder = os.path.join(dataset_folder, split, "images")
+        if not (os.path.isdir(annotation_folder) and os.path.isdir(image_folder)):
+            raise FileNotFoundError(f"Missing directory: {annotation_folder} or {image_folder}")
+
+        # List all image and annotation files
+        self.image_files = sorted([
+            f for f in os.listdir(image_folder)
+            if os.path.isfile(os.path.join(image_folder, f))
+        ])
+        self.annotation_files = sorted([
+            f for f in os.listdir(annotation_folder)
+            if os.path.isfile(os.path.join(annotation_folder, f))
+        ])
+
+        self.annotation_folder = annotation_folder
+        self.image_folder = image_folder
         self.transform = transform
 
+        assert len(self.image_files) == len(self.annotation_files), "Number of images and annotations must match"
+
     def __len__(self):
-        # Return the number of images in the training set by default
-        # You may want to change 'train' to another split if needed
-        return len(os.listdir(self.datasets['train']['images']))
-    
-    
-    def __getitem__(self, idx,
-                    image_folder, annotations_folder):
-        """
-        Retrieve an image and its corresponding annotation data by index.
-                Args:
-                    idx (int or torch.Tensor): Index of the item to retrieve. If a torch.Tensor is provided, it will be converted to a list or integer.
-                    image_folder (str): Path to the folder containing image files.
-                    annotations_folder (str): Path to the folder containing annotation files.
-                Returns:
-                    tuple: A tuple containing:
-                        - image (PIL.Image.Image): The loaded image in RGB format.
-                        - boxes (np.ndarray or torch.Tensor): Bounding box coordinates for objects in the image.
-                        - labels (np.ndarray or torch.Tensor): Class labels for each object.
-                        - difficulties (np.ndarray or torch.Tensor): Difficulty flags for each object.
-                Raises:
-                    FileNotFoundError: If the image or annotation file for the given index does not exist.
-                Notes:
-                    - If the attribute 'keep_difficult' is set to False, objects marked as difficult will be filtered out.
-                    - If a transform is specified, it will be applied to the image and annotation data before returning.
-                    - The function expects the image and annotation files to be sorted and aligned by filename.
-                    - No iteration/for loop is used in this function; it retrieves a single item based on the provided index. 
-                        This is because the function is designed to work with PyTorch's DataLoader,
-                        which handles batching and iteration separately.
-        """
+        return len(self.image_files) #can just return because previously checked that image_files and annotation_files have the same length
 
+    def __getitem__(self, idx):
+        """
+        Retrieve a sample from the dataset at the given index `idx`.
+
+        This method performs the following steps:
+            1. Resolves the file paths for the image and its annotation based on the index.
+            2. Loads the image from disk, converts it to RGB, and transforms it into a normalized PyTorch tensor.
+            3. Parses the corresponding annotation file (e.g., Pascal VOC XML) to extract bounding boxes, labels, and difficulty flags.
+            4. Converts the annotation data into PyTorch tensors.
+            5. Optionally filters out objects marked as 'difficult' if `keep_difficult` is False.
+            6. Applies any provided data transformations (e.g., augmentation, normalization).
+            7. Returns a tuple containing the image tensor, bounding boxes, labels, and difficulties.
+
+        Args:
+            idx (int): Index of the sample to retrieve.
+
+        Returns:
+            tuple: (image, boxes, labels, difficulties)
+            - image (Tensor): Image tensor of shape (3, H, W), normalized to [0, 1].
+            - boxes (Tensor): Bounding boxes, shape (n_objects, 4).
+            - labels (Tensor): Class labels for each object.
+            - difficulties (Tensor): Difficulty flags for each object.
+        """
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        image_path = os.path.join(self.image_folder, self.image_files[idx])
+        annotation_path = os.path.join(self.annotation_folder, self.annotation_files[idx])
+
+        if not os.path.isfile(image_path):
+            raise FileNotFoundError(f"Missing image file: {image_path}")
+        if not os.path.isfile(annotation_path):
+            raise FileNotFoundError(f"Missing annotation file: {annotation_path}")
+
+        # Load image and convert to tensor
+        # image = read_image(image_path) frm torchvion.io cannot handle .tiff
+        image = Image.open(image_path).convert('RGB')
+        image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0  # (C, H, W), normalized
+                                                                        # Normalised because:
+                                                                        # RGB have a range of [0, 255],
+                                                                        # and we want to convert it to [0, 1] for PyTorch
+                                                                        # so that the model will not learn in an imbalanced way:
+                                                                        # pixel values or feature values (input) can differ largely
+                                                                        # we want to keep the input values in a similar range
+
+
+        # Read objects in this image (bounding boxes, labels, difficulties)
+        boxes, labels, difficulties = parse_annotation(annotation_path, label_map=label_map_OD)
+
+        # Parse annotation to get boxes, labels, difficulties
+            # annotation_file is a file path (usually to an XML file), not a dictionary.
+            # The function parse_annotation reads and parses the XML file, extracting the bounding boxes, labels, and difficulties.
+            # The line below ensures all coordinates are floats, which is important if the XML parsing returns strings or integers.
+            # The lists are then converted to PyTorch tensors.
+            # This approach is used when working directly with raw annotation files (e.g., Pascal VOC XMLs) and not with preprocessed JSON data.
+        # boxes = []
+        # labels = []
+        # difficulties = []
         
-        if torch.is_tensor(idx): # convert to list 
-            idx = idx.tolist() 
+        # parsed = parse_annotation(annotation_file, 
+        #                            label_map=label_map_OD)
+        # boxes.append(parsed[1]) #(n_objects, 4)
+        # labels.append(parsed[2]) # (n_objects)
+        # difficulties.append(parsed[3]) # (n_objects)
+        
+        # # Convert lists to tensors
+        boxes = torch.FloatTensor(boxes)
+        labels = torch.LongTensor(labels)
+        difficulties = torch.ByteTensor(difficulties)
 
-        """
-        When using PyTorch’s DataLoader, the indices passed to __getitem__ 
-        can sometimes be PyTorch tensors instead of plain integers. This 
-        often happens when you use certain DataLoader settings or batch samplers. 
-        For example, if you use advanced indexing or certain transforms, 
-        PyTorch may wrap the index in a tensor.
-        """
-
-        # Get image and annotation file paths for the given idx
-        image_files = sorted(os.listdir(image_folder))
-        annotation_files = sorted(os.listdir(annotations_folder))
-
-        image_file = os.path.join(image_folder, image_files[idx])
-        annotation_file = os.path.join(annotations_folder, annotation_files[idx])
-
-        if not os.path.isfile(image_file):
-            raise FileNotFoundError(f"Missing image file: {image_file}")
-        if not os.path.isfile(annotation_file):
-            raise FileNotFoundError(f"Missing annotation file: {annotation_file}")
-
-        # Load image
-        image = Image.open(image_file).convert('RGB')
-
-        # Parse annotation
-        boxes, labels, difficulties = parse_annotation(annotation_file)
-
-        # Discard difficult objects, if desired
-        if hasattr(self, 'keep_difficult') and not self.keep_difficult:
+        # Optionally filter out difficult objects
+        if not self.keep_difficult:
             boxes = boxes[1 - difficulties]
             labels = labels[1 - difficulties]
             difficulties = difficulties[1 - difficulties]
 
-
-        # Apply transformations
+        # Apply transforms if provided
         if self.transform:
             image, boxes, labels, difficulties = self.transform(image, boxes, labels, difficulties, split=self.split)
 
+            # # Print a couple of sample indexes for debugging
+            # if idx in [0, 3]:
+            #     print(f"Index {idx} - Image tensor shape: {image.shape}")
+            #     print("Image tensor:", image)
+            #     print(f"Index {idx} - Boxes tensor: {boxes}")
+            #     print("Boxes tensor:", boxes)
+            #     print(f"Index {idx} - Labels tensor: {labels}")
+            #     print("Labels tensor:", labels)
+            #     print(f"Index {idx} - Difficulties tensor: {difficulties}")
+            #     print("Difficulties tensor:", difficulties)
+
         return image, boxes, labels, difficulties
-
-    # Pytorch dataloader requires a collate function to handle batches of data
-    # Pytorch has a default collate function, but it may not work well with variable-length sequences
-    # Therefore, we need to define a custom collate function if the default one does not work:
-    # def collate_fn(self, batch):
-    # default_collate() function did not work with the dataset: 
-
 
     def collate_fn(self, batch):
         """
-        In Object detection, each image has a different number of objects, unlike in classification 
-        (where each image has the same number of classes). Since each image may have a different number of objects,
-        we need a collate function (to be passed to the DataLoader).
-        The default PyTorch collate function tries to stack everything into tensors, which fails if the data has 
-        variable lengths. This custom function solves that problem.
+        Custom collate function for batching data samples in a DataLoader.
 
         :param batch: an iterable of N sets from __getitem__()
         :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
         """
+        images = []
+        boxes = []
+        labels = []
+        difficulties = []
 
-        images = list()
-        boxes = list()
-        labels = list()
-        difficulties = list()
-
-        for b in batch: # b is a tuple of (image, boxes, labels, difficulties)
-            # b[0] is the image, b[1] is the boxes, b[2] is the labels, b[3] is the difficulties
+        for b in batch:
             images.append(b[0])
             boxes.append(b[1])
             labels.append(b[2])
             difficulties.append(b[3])
 
-        images = torch.stack(images, dim=0)
+        images = torch.stack(images, dim=0) 
 
-        return images, boxes, labels, difficulties  # tensor (N, 3, 300, 300), 3 lists of N tensors each
-
-
-
-
+        # # Print a couple of sample batches for debugging
+        # if len(images) in [1, 4]:
+        #     print("Batch Images tensor:", images)
+        #     print("Batch Boxes tensor:", boxes)
+        #     print("Batch Labels tensor:", labels)
+        #     print("Batch Difficulties tensor:", difficulties)
+            
+        return images, boxes, labels, difficulties  # tensor (N, 3, H, W), 3 lists of N tensors each
 
 
 
@@ -210,6 +260,10 @@ class GA_Dataset(Dataset):
         image = image.convert('RGB')
 
         # Read objects in this image (bounding boxes, labels, difficulties)
+            # This code assumes that annotation_file is already a dictionary (not a file path), with keys 'boxes', 'labels', and 'difficulties'.
+            # Each key directly provides a list of values (e.g., a list of bounding boxes).
+            # This is typical when loading preprocessed data from a JSON file, where the annotation information is already structured and ready to use.
+            # The conversion to PyTorch tensors is straightforward and efficient, as no further parsing or type conversion is needed.
         objects = self.objects[i]
         boxes = torch.FloatTensor(objects['boxes'])  # (n_objects, 4)
         labels = torch.LongTensor(objects['labels'])  # (n_objects)
@@ -227,6 +281,7 @@ class GA_Dataset(Dataset):
         
 
         # image, boxes, labels, difficulties = transform(image, boxes, labels, difficulties, split=self.split)
+
 
         return image, boxes, labels, difficulties
 
