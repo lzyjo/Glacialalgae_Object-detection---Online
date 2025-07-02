@@ -55,6 +55,27 @@ e 'collate_fn'  does not need to be imported (ImportError: cannot import name 'c
 
 13. why do files never save unless i literally click ctrl + s? crt +s simple shifts whatever changes to the change list (not staged)
 
+14. 1/7/2025
+Both print(f"Number of detections: {len(pred['boxes'])}") and print(f"Number of detections: {len(pred_boxes)}") are always 100, even after filtering with your threshold, means that all 100 predictions have scores above your threshold
+Possible reasons why:
+- model is not well trained and outputs high confidence for all boxes 
+- model is overfitting or not actually learning, so it outputs high scores for everything
+- bug in training loop?
+- high lr tough i think unlikely 
+- more? to read DWLPyTorch again for specifics 
+
+extra notes took a look at the scores: 
+Min score: 0.5492982864379883 Mean score: 0.5633032321929932 Max score: 0.6041600108146667 25th percentile sco0108146667 25th percentile                                                      core: 0.567664384841919
+Min score: 0.5492982864379883 Mean score: 0.5633032321929932 Max score: 0.6041600108146667
+Min score: 0.5492982864379883 Mean score: 0.5633032321929932 Max score: 0.604160
+0108146667 25th percentile score: 0.55512535572052 50th percentile score: 0.5598
+536729812622 75th percentile score: 0.567664384841919
+
+could be due to model saved is sort of weird, not saved as model for each epoch currently... i think it is the 'latest'/'updated' model.. so may not be the ebst model..? weights may not have beens tored properly... even though loss is low. ALTHOUGH mAP is also very low. 
+
+15. separate_preds_targets() function was created as dataloader returns data in format that is not necessarily appropriate for torchvision model. however, is it better practice to have this function, or to ensure that dataloader output is in the correct format from the get go? which one impacts modularity more? question to ask self and to ask levi if not solved. 
+
+
 TO-DO-LIST
 
 - [ ] Include integration with TensorBoard for  visualization and monitoring and model progress tracking.

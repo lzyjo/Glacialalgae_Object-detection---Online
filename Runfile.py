@@ -301,25 +301,29 @@ from utils import manage_training_output_file
 
 date_of_dataset_used = '20250513'  # Date of dataset used for training
 results_folder = r'5_Results'  # Folder to save results
-training_output_file = manage_training_output_file(results_folder=results_folder,
-                                                   date_of_dataset_used=date_of_dataset_used,
-                                                   augmented=True)  # augmented_data if augmented dataset used
+training_output_txt, training_output_csv = manage_training_output_file(
+    results_folder=results_folder,
+    date_of_dataset_used=date_of_dataset_used,
+    augmented=True,
+    model_type='detector')  # augmented_data if augmented dataset used
+print(f"Training output txt will be saved at: {training_output_txt}")
+print(f"Training output CSV will be saved at: {training_output_csv}")
 
 # TRAIN MODEL: Run the training process and save the output
 data_folder = r'3_TrainingData\20250513_Augmented\Split'  # Folder containing the training data
 date_of_dataset_used = '20250513'  # Date of dataset used for training
 
 
-subprocess.run(['python', 'train_custom.py', #change model, optimizer, loss_fn, etc. in train_custom.py 
-                '--data_folder', data_folder, 
-                '--training_output_file', training_output_file, 
-                '--save_dir', r'6_Checkpoints',
-                '--object_detector', 'yes',])
 
-           
+subprocess.run([
+    'python', 'train_custom.py',  # change model, optimizer, loss_fn, etc. in train_custom.py 
+    '--data_folder', data_folder, 
+    '--training_output_txt', training_output_txt, 
+    '--training_output_csv', training_output_csv,
+    '--save_dir', r'6_Checkpoints',
+    '--model_type', 'object_detector',  # 'object_detector' or 'object_classifier'
+])
 
-# Return the relative file path of the training output file
-print(f"Training output file saved at: {os.path.relpath(training_output_file)}")
 
 
 
@@ -389,4 +393,31 @@ with open(evaluation_output_file, 'w') as f:
 subprocess.run(['python', 'detect.py',
                 '--checkpoint', checkpoint,
                 '--img_path', r'1_GA_Dataset/Split/test/images/0.tif'])
+
+
+
+import json
+import os
+import pandas as pd
+import subprocess
+from torchvision.transforms import v2 as T
+from datetime import datetime
+
+import matplotlib.pyplot as plt
+import torch
+from tifffile import imread
+from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from debugging import visualize_detection_on_image
+from label_map import label_map_OD  # Import the label map for object detection
+label_map = label_map_OD  # Use the object detection label map
+visualize_detection_on_image(
+    image_path=r'3_TrainingData\20250318_Augmented\Split\test\images\1.tif',
+    model_path=r'5_Results/5_Results/training_results_20250513_Augmented.txt_model.pth',
+    device="cpu",
+    label_map = label_map,  # Use the object detection label map
+    mask_threshold=0.7,
+    threshold=0.6, 
+    figsize=(10, 10)
+)
 

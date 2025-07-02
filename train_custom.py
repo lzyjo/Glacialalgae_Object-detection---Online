@@ -1,14 +1,21 @@
+from calendar import c
+from turtle import up
 import torch
 from torch.utils.data import DataLoader
 import torch.utils.data as data_utils
 from dataset import PC_Dataset
-from utils import calculate_metrics_and_loss, save_metrics
+from utils import AverageMeter, accuracy, calculate_metrics_and_loss, save_checkpoint, save_metrics
+from utils import separate_preds_targets
 import hyperparameters
 from label_map import label_map_Classifier, label_map_OD
 import argparse
 from utils import adjust_learning_rate
-from sklearn.metrics import f1_score, precision_score, recall_score
-from sklearn.metrics import average_precision_score, jaccard_score
+from utils import calculate_metrics, log_metrics
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix, ConfusionMatrixDisplay #metrics for classification
+from sklearn.metrics import average_precision_score, jaccard_score #metrics for object detection
+from torchmetrics.detection.mean_ap import MeanAveragePrecision #metrics for object detection
+from torchmetrics.detection.iou import IntersectionOverUnion #metrics for object detection
+from torchmetrics import JaccardIndex #metrics for object detection
 from tqdm import tqdm
 from hyperparameters import *
 import datetime
@@ -24,27 +31,29 @@ import time
 parser = argparse.ArgumentParser(description='Model training params') # Parsing command-line arguments
 
 ## arguments
-parser.add_argument('--object_detector', type=str, choices=['yes', 'no'], required=True, 
-                    help='use object detector label map if "yes", otherwise use classifier label map')
+parser.add_argument('--model_type', type=str, choices=['object_detector', 'object_classifier'], required=True,
+                    help='type of model to train: "object_detector" for object detection, "object_classifier" for classification')
 parser.add_argument('--data_folder', default=r'JSON_folder', type=str, help='folder with data files')
-parser.add_argument('--training_output_file', type=str, help='file to save training output')
+parser.add_argument('--training_output_txt', type=str, help='file to save training output')
+parser.add_argument('--training_output_csv', type=str, help='file to save training output in CSV format')
 parser.add_argument('--save_dir', default=r'Checkpoints', type=str, help='folder to save checkpoints')
 
-# Parse arguments
-args = parser.parse_args()
+args = parser.parse_args() # Parse arguments
+
 
 
 ########################################### DATA PARAMETERS ####################################################
 
 # object detector or classifier?
-if args.object_detector == 'yes':
+if args.model_type == 'object_detector':
     label_map = label_map_OD  # use object detector label map
-else:
+if args.model_type == 'object_classifier':
     label_map = label_map_Classifier  # use classifier label map
 
 
 n_classes = len(label_map)  # number of different types of objects
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') 
 model = model.to(device)  # Assuming 2 classes (background + object)
 
@@ -147,9 +156,9 @@ def initialize_training():
         return start_epoch, optimizer, loss_fn
 
 
-def train_one_epoch(epoch,total_epochs,
+"""def train_one_epoch(epoch,total_epochs,
                     writer, optimizer, loss_fn):
-    """
+
     Trains the model for one epoch.
     Args:
         epoch (int): The current epoch number.
@@ -159,109 +168,310 @@ def train_one_epoch(epoch,total_epochs,
         loss_fn (callable): Loss function to compute the loss between predictions and labels.
     Returns:
         None
-    """
 
     model.train()
     running_loss = 0.0
 
-# Batch Structure:
-# - The custom collate_fn for object detection returns a batch as (images, boxes, labels, difficulties),
-#   not just (inputs, labels). Ignoring bounding boxes and difficulties (as in the simple classification loop)
-#   will break object detection training.
-#
-# Object Detection Models:
-# - Models like Faster R-CNN (torchvision) require both images and a targets list (one dict per image,
-#   each with 'boxes' and 'labels') during training. The correct code prepares and passes this structure.
-#   The simple classification loop does not, leading to errors like:
-#   AssertionError: targets should not be none when in training mode.
-#
-# Device Handling:
-# - The correct code ensures all tensors (images, boxes, labels) are moved to the correct device (CPU or GPU).
-#   The simple loop only moves inputs and labels, which is not enough for detection tasks.
-#
-# Classification vs Detection:
-# - The correct code handles both object detection (object_detector == 'yes') and classification
-#   (object_detector == 'no') by branching appropriately. The simple loop only works for classification.
-#
-# Summary:
-# - The correct code unpacks the batch according to the custom collate function, prepares the data in the
-#   format required by object detection models, and handles device placement for all relevant tensors.
-#   The simple classification loop is only suitable for basic classification tasks and will not work for object detection.
+    print_freq = 200  # Track loss every
 
-    for i, (images, boxes, labels, _) in enumerate(
-        tqdm(train_loader, 
-             desc=f'Epoch {epoch}/{epoch_num}', 
-             unit='batch')
-            ):
-        
-        images = images.to(device) # Move data to device
+    with tqdm(train_loader, desc=f'Epoch {epoch}/{total_epochs}', unit='batch') as tq:
+        for i, batch in enumerate(tq):
+            images, boxes, labels, image_files = batch
 
-        if args.object_detector == 'yes':  # Torchvision models expect targets to be a list of dicts with 'boxes' and 'labels' keys
-            filtered_images = []
-            filtered_targets = []
+            images = images.to(device)  # Move data to device
 
-            for img, b, l in zip(images, boxes, labels):
-                if b.shape[0] > 0: 
-                    filtered_images.append(img)
-                    filtered_targets.append({
-                        'boxes': b.to(device),
-                        'labels': l.to(device)
+            if args.model_type == 'object_detector':  # Torchvision models expect targets to be a list of dicts with 'boxes' and 'labels' keys
+                preds, targets, _, debug_info = separate_preds_targets(
+                    images, boxes, labels, image_files, device, 
+                    debug=True
+                )
+                
+                if debug_info: # check if debug_info is not empty
+                    print(f"Debug info: {debug_info}")  # Print debug information if needed
+
+                if len(preds) == 0:
+                    continue  # skip this batch if no images have valid boxes
+
+                images_batch = torch.stack(preds).to(device)
+                optimizer.zero_grad()  # clear gradients 
+                loss_dict = model(images_batch, targets)  # For torchvision models, loss_dict is a dict of losses
+                loss = sum(loss for loss in loss_dict.values())
+
+                # Get model outputs (detections) in eval mode for metrics
+                model.eval()
+                with torch.no_grad():
+                    detections = model(images_batch)
+                model.train()
+
+                # Prepare predictions in the format required by torchmetrics
+                preds_for_metric = []
+                for det in detections:
+                    preds_for_metric.append({
+                        'boxes': det['boxes'].detach().cpu(),
+                        'scores': det['scores'].detach().cpu(),
+                        'labels': det['labels'].detach().cpu()
                     })
-            if len(filtered_images) == 0:
-                continue  # skip this batch if no images have boxes
 
-            # if want to include images with no boxes, we must find a way to convert empty boxes to an appropate format
-            # but at the moment, we are skipping images with no boxes
-            # because i do not know how to handle empty boxes in the targets dict.... :( 
+            else: #Simple classification loop
+                if isinstance(labels, (list, tuple)): #handles case where labels is a list of tensors (multi-label) and also when labels is a single tensor 
+                    labels = [l.to(device) for l in labels]
+                else:
+                    labels = labels.to(device)
+                optimizer.zero_grad() #clear gradients
+                outputs = model(images) #forward pass
+                loss = loss_fn(outputs, labels) #loss computation (separately unlike in the object detection case)
 
-            images_batch = torch.stack(filtered_images).to(device)
-            optimizer.zero_grad() #clear gradients 
-            loss_dict = model(images_batch, filtered_targets) # For torchvision models, loss_dict is a dict of losses
-            loss = sum(loss for loss in loss_dict.values())
-            print(loss)
-    
-        else: #Simple classification loop
-            if isinstance(labels, (list, tuple)): #handles case where labels is a list of tensors (multi-label) and also when labels is a single tensor 
-                labels = [l.to(device) for l in labels]
-            else:
-                labels = labels.to(device)
-            optimizer.zero_grad() #clear gradients
-            outputs = model(images) #forward pass
-            loss = loss_fn(outputs, labels) #loss computation (separately unlike in the object detection case)
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item()
+
+            if (i + 1) % print_freq == 0: # Print loss every print_freq batches
+                tq.set_postfix({'loss': loss.item()}) # update the progress bar with the current loss
+                tq.write(f'Batch {i+1}, Loss: {loss.item()}') # Print loss for the current batch
+
 
         loss.backward() #backward pass
         optimizer.step() #update weights
         running_loss += loss.item()  # accumulates the loss for the current batch
 
-        if i % 1000 == 999:
-            avg_loss = running_loss / 1000
-            print(f'  batch {i + 1} loss: {avg_loss}')
-            writer.add_scalar('Loss/train', avg_loss, epoch * len(train_loader) + i + 1)
-            running_loss = 0.0
+        # Accumulate predictions and ground truths for epoch-level metrics
+        if not hasattr(train_one_epoch, "epoch_gt_boxes"):
+            epoch_gt_boxes = []
+            epoch_gt_labels = []
+            epoch_pred_boxes = []
+            epoch_pred_labels = []
+            epoch_pred_scores = []
+
+        # Get model outputs (detections) in eval mode for metrics
+        model.eval() # Set model to evaluation mode to disable dropout and batch normalization
+        with torch.no_grad():
+            detections = model(images_batch)
+        model.train() # Set model back to training mode for the next iteration
+
+        # Prepare ground truth and prediction lists for metric calculation
+        gt_boxes = [t['boxes'].cpu() for t in targets] # Extract ground truth boxes from targets
+        gt_labels = [t['labels'].cpu() for t in targets] # Extract ground truth labels from targets
+                # Note: targets is a list of dicts, each dict contains 'boxes' and 'labels'
+        pred_boxes = [d['boxes'].cpu() for d in detections] # Extract predicted boxes from detections
+        pred_labels = [d['labels'].cpu() for d in detections] # Extract predicted labels from detections
+        pred_scores = [d['scores'].cpu() for d in detections] # Extract predicted scores from detections
+
+        # Extend epoch lists with current batch data
+        epoch_gt_boxes.extend(gt_boxes)
+        epoch_gt_labels.extend(gt_labels)
+        epoch_pred_boxes.extend(pred_boxes)
+        epoch_pred_labels.extend(pred_labels)
+        epoch_pred_scores.extend(pred_scores)
+
+        gt_labels = torch.cat(epoch_gt_labels) # Concatenate all ground truth labels for the epoch
+        pred_labels = torch.cat(epoch_pred_labels) # Concatenate all predicted labels for the epoch
+
+        
+        # Calculate metrics for object detection or classification
+
+        if args.model_type == 'object_classifier':  # If using a classifier
+            # Calculate accuracy for classification
+            accuracy_value = accuracy_score(
+                gt_labels, # ground truth labels
+                pred_labels # predicted labels
+            )
+            precision_value = precision_score(
+                gt_labels,
+                pred_labels,
+                average='weighted'
+            )
+            recall_value = recall_score(
+                gt_labels,
+                pred_labels,
+                average='weighted'
+            )
+            f1_score_value = f1_score( #fq score is mean of precision and recall
+                gt_labels,
+                pred_labels,
+                average='weighted'
+            )
+            confusion_matrix_value = confusion_matrix(
+                gt_labels,
+                pred_labels,
+            )
+
+            # Log metrics to TensorBoard
+            writer.add_scalar('Accuracy/train_batch', accuracy_value, epoch * len(train_loader) + i + 1)
+            mean_ap = MeanAveragePrecision(
+                iou_type='bbox',  # Use bounding box IoU
+            )
+            mean_ap.update(preds_for_metric, targets)  # Update MeanAveragePrecision with predictions and targets
+            mean_ap_value = mean_ap.compute()
+            print(f'F1 Score: {f1_score_value}')
+            print(f'Precision: {precision_value}')
+            print(f'Recall: {recall_value}')
+            print(f'Confusion Matrix: {confusion_matrix_value}')
+            confusion_matrix_display = ConfusionMatrixDisplay(confusion_matrix=confusion_matrix_value,
+                                                              display_labels=label_map.keys())
+            confusion_matrix_display.plot(cmap='Blues')
+
+        if args.model_type == 'object_detector':  # If using an object detector
+            # Calculate metrics for object detection
+            mean_ap = MeanAveragePrecision(
+                iou_type='bbox',  # Use bounding box IoU
+            )
+            mean_ap.update(preds, targets)  # Update MeanAveragePrecision with predictions and targets
+            mean_ap_value = mean_ap.compute()
+
+            jaccard_value = jaccard_score(
+                gt_labels.numpy(),
+                pred_labels.numpy(),
+                average='weighted'
+            )
+
+            # Log metrics to TensorBoard
+            writer.add_scalar('Mean Average Precision/train_batch', mean_ap_value['map'], epoch * len(train_loader) + i + 1)
+            writer.add_scalar('Jaccard/train_batch', jaccard_value, epoch * len(train_loader) + i + 1)    
+            print(f'Mean Average Precision: {mean_ap_value["map"]}')
+            print(f'Jaccard Index: {jaccard_value}')
+
+            print("Saving metrics to file...")
+            try:
+                # save metrics to txt file
+                with open(f'5_Results/{args.training_output_txt}.txt', 'a') as f:
+                    f.write(f'Epoch: {epoch}, Batch: {i + 1}, Mean Average Precision: {mean_ap_value.get("map", "N/A")}, Jaccard Index: {jaccard_value if "jaccard_value" in locals() else "N/A"}\n')
+
+                # save metrics to CSV file
+                with open(f'5_Results/{args.training_output_csv}.csv', 'a', newline='') as csvfile:
+                    writer_csv = csv.writer(csvfile)
+                    # Write header if file is empty
+                    if csvfile.tell() == 0:
+                        writer_csv.writerow(['Epoch', 'Batch', 'Mean Average Precision', 'Jaccard Index'])
+                    # Write metrics for the current batch
+                    writer_csv.writerow([
+                        epoch,
+                        i + 1,
+                        mean_ap_value.get('map', 'N/A'),
+                        jaccard_value if "jaccard_value" in locals() else "N/A"
+                    ])
+                # Save the model state dictionary
+                torch.save(model.state_dict(), f'5_Results/{args.training_output_txt}_model.pth')
+                print(f'Model state dictionary saved as {args.training_output_csv}_model.pth')
+            except Exception as e:
+                print(f"Error saving metrics or model: {e}")
 
 
-## From DLWPyTorch example ###############
-# import torch 
-# import torch.nn as nn  
-
-# train_loader = torch.utils.data.DataLoader(cifar2, batch_size=64, shuffle=True)  
-# model = nn.Sequential( nn.Linear(3072, 512), 
-                        # nn.Tanh(), 
-                        # nn.Linear(512, 2), 
-                        # nn.LogSoftmax(dim=1))  
-
-#learning_rate = 1e-2  
-
-# optimizer = optim.SGD(model.parameters(), lr=learning_rate)  
-# loss_fn = nn.NLLLoss()  
-# n_epochs = 100  
-
-# for epoch in range(n_epochs): 
-#    for imgs, labels in train_loader:  DATASET  24, 13, 18, 7  10, 4, 11, 2  =4  =  DATA LOADER  Figure 7.14 A data loader dispensing minibatches by using a dataset to sample individual data items 186 CHAPTER 7 Telling birds from airplanes: Learning from images  batch_size = imgs.shape[0] outputs = model(imgs.view(batch_size, -1)) loss = loss_fn(outputs, labels)  optimizer.zero_grad() loss.backward() optimizer.step()  print("Epoch: %d, Loss: %f" % (epoch, float(loss)))
+        # Print status
+        if i == len(train_loader) - 1: # If this is the last batch of the epoch
+            print('Epoch: [{0}/{1}]\t' 
+              'Average Loss: {loss:.4f}'.format(
+                  epoch, total_epochs, loss=running_loss / len(train_loader)))"""
 
 
+def train_one_epoch(epoch, total_epochs, writer, optimizer, loss_fn):
+    """
+    Trains the model for one epoch.
+    """
+    model.train()
+    running_loss = 0.0
+    print_freq = 200
 
+    with tqdm(train_loader, desc=f'Epoch {epoch}/{total_epochs}', unit='batch') as tq:
+        for i, batch in enumerate(tq):
+            images, boxes, labels, image_files = batch
+            images = images.to(device) #images = [img.to(device) for img in images]
+                        # If images is a list of tensors: move each to device.
+                        # If images is a batched tensor: convert to list, then move each to device.
+                        # NOTE:
+                        # The custom collate_fn currently stacks images into a single tensor of shape (N, 3, H, W),
+                        # but returns boxes, labels, and difficulties as lists of tensors (one per image).
+                        # Torchvision object detection models (like Faster R-CNN) expect a list of image tensors,
+                        # not a single batched tensor. Passing a batched tensor instead of a list will cause errors.
+                        # To fix: convert the images tensor back to a list before passing to the model:
+                        #     images = [img.to(device) for img in images]
 
+            if args.model_type == 'object_detector':
+                preds, targets, _, debug_info = separate_preds_targets(
+                    images, boxes, labels, image_files, device, debug=True
+                )
+                if debug_info:
+                    print(f"Debug info: {debug_info}")
+                if len(preds) == 0:
+                    continue
+
+                images_batch = torch.stack(preds).to(device)
+                optimizer.zero_grad()
+                loss_dict = model(images_batch, targets) # For torchvision models, outputs is a dict of losses
+                #The types of loss are: loss_classifier, loss_box_reg, loss_objectness, loss_rpn_box_reg
+                #Print(loss_dict) would return something like:
+                # {'loss_classifier': tensor(0.0490, grad_fn=<NllLossBackward0>), 'loss_box_reg': tensor(0.0344, grad_fn=<DivBackward0>), 'loss_objectness': tensor(0.0069, grad_fn=<BinaryCrossEntropyWithLogitsBackward0>), 'loss_rpn_box_reg': tensor(0.0021, grad_fn=<DivBackward0>)} 
+                # {'boxes': tensor([], size=(0, 4), grad_fn=<StackBackward0>), 'labels': tensor([], dtype=torch.int64), 'scores': tensor([], grad_fn=<IndexBackward0>)}
+                loss = sum(loss for loss in loss_dict.values()) #custom loss function such as nn.CrossEntropyLoss() or nn.BCEWithLogitsLoss() cannot be used directly with torchvision models.
+                                                                #to use a specific loss function
+                                                                #modify the model’s source code or write your own detection head
+
+            else:
+                if isinstance(labels, (list, tuple)):
+                    labels = [l.to(device) for l in labels]
+                else:
+                    labels = labels.to(device)
+                optimizer.zero_grad()
+                outputs = model(images)
+                loss = loss_fn(outputs, labels)
+                
+            loss.backward() # backward pass
+            optimizer.step() # update weights
+            running_loss += loss.item() # accumulates the loss for the current batch
+
+            model.eval()
+            with torch.no_grad():
+                detections = model(images_batch)
+            model.train()
+
+            preds_for_metric = [] # Prepare predictions in the format required by torchmetrics
+            for det in detections:
+                preds_for_metric.append({
+                    'boxes': det['boxes'].detach().cpu(),
+                    'scores': det['scores'].detach().cpu(),
+                    'labels': det['labels'].detach().cpu()
+                })
+
+            if (i + 1) % print_freq == 0:
+                tq.set_postfix({'loss': loss.item()})
+                tq.write(f'Batch {i+1}, Loss: {loss.item()}')
+
+        # Accumulate predictions and ground truths for epoch-level metrics
+        if not hasattr(train_one_epoch, "epoch_gt_boxes"):
+            epoch_gt_boxes = []
+            epoch_gt_labels = []
+            epoch_pred_boxes = []
+            epoch_pred_labels = []
+            epoch_pred_scores = []
+
+        model.eval()
+        with torch.no_grad():
+            detections = model(images_batch)
+        model.train()
+
+        gt_boxes = [t['boxes'].cpu() for t in targets]
+        gt_labels = [t['labels'].cpu() for t in targets]
+        pred_boxes = [d['boxes'].cpu() for d in detections]
+        pred_labels = [d['labels'].cpu() for d in detections]
+        pred_scores = [d['scores'].cpu() for d in detections]
+
+        epoch_gt_boxes.extend(gt_boxes)
+        epoch_gt_labels.extend(gt_labels)
+        epoch_pred_boxes.extend(pred_boxes)
+        epoch_pred_labels.extend(pred_labels)
+        epoch_pred_scores.extend(pred_scores)
+
+        gt_labels_cat = torch.cat(epoch_gt_labels)
+        pred_labels_cat = torch.cat(epoch_pred_labels)
+
+    
+        if i == len(train_loader) - 1:
+            print('Epoch: [{0}/{1}]\tAverage Loss: {loss:.4f}'.format(
+                epoch, total_epochs, loss=running_loss / len(train_loader)))
+
+    if args.model_type == 'object_detector':
+        return loss, epoch_gt_boxes, gt_labels_cat, pred_labels_cat, targets, i
+    if args.model_type == 'object_classifier':
+        return loss, gt_labels_cat, pred_labels_cat, epoch_pred_scores, epoch_gt_boxes
 
 
 def main():
@@ -291,8 +501,7 @@ def main():
 
     start_epoch, optimizer, loss_fn = initialize_training()
 
-    training_output_file = args.training_output_file
-    writer = SummaryWriter(f'5_Results/{training_output_file}')
+    writer = SummaryWriter(f'5_Results/')
     #train_loader = train_loader
     #validation_loader = validation_loader
 
@@ -304,15 +513,35 @@ def main():
             adjust_learning_rate(optimizer, decay_lr_to)
 
         epoch = epoch + 1
-        train_one_epoch(epoch, total_epochs, writer, optimizer, loss_fn)
-        train_metrics = calculate_metrics_and_loss(train_loader, loss_fn)
-        val_metrics = calculate_metrics_and_loss(validation_loader, loss_fn)
-        save_metrics(epoch, total_epochs, 
-                     writer, training_output_file,
-                     train_metrics, val_metrics) #include metrics to CSV file
-        
-    torch.save(model.state_dict(), 'model.pth')
-    print("Model saved as model.pth")
+        loss, gt_labels_cat, pred_labels_cat, preds_for_metric, targets, i = train_one_epoch(epoch, total_epochs, writer, optimizer, loss_fn)
+
+         # Calculate metrics
+        if args.model_type == 'object_classifier':
+            metrics = calculate_metrics(
+                args, gt_labels_cat, pred_labels_cat
+            )
+            log_metrics(
+                args, writer, epoch, i, train_loader,
+                metrics, label_map=label_map
+            )
+        elif args.model_type == 'object_detector':
+            metrics = calculate_metrics(
+                args, gt_labels_cat, pred_labels_cat, 
+                loss=loss, preds_for_metric=preds_for_metric, targets=targets
+            )
+            log_metrics(
+                args, writer, epoch, i, train_loader,
+                metrics
+            )
+
+        save_checkpoint(epoch, model, optimizer, data_folder, metrics)
+        print("Model saved as model.pth")
+
+        # train_metrics = calculate_metrics_and_loss(train_loader, loss_fn)
+        # val_metrics = calculate_metrics_and_loss(validation_loader, loss_fn)
+        # save_metrics(epoch, total_epochs, writer, training_output_file, train_metrics, val_metrics) #include metrics to CSV file
+
+        print(f'Epoch {epoch}/{total_epochs} completed. Metrics logged and model saved.')
 
 
 def train():

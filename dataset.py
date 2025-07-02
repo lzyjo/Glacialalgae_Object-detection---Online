@@ -139,6 +139,70 @@ class PC_Dataset(Dataset):
             raise FileNotFoundError(f"Missing annotation file: {annotation_path}")
 
         # Load image and convert to tensor
+        image = Image.open(image_path).convert('RGB')
+        image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0  # (C, H, W), normalized
+
+        # Read objects in this image (bounding boxes, labels, difficulties)
+        boxes, labels, difficulties = parse_annotation(annotation_path, label_map=label_map_OD)
+
+        # Convert lists to tensors
+        boxes = torch.FloatTensor(boxes)
+        labels = torch.LongTensor(labels)
+        difficulties = torch.ByteTensor(difficulties)
+
+        # Optionally filter out difficult objects
+        if not self.keep_difficult:
+            boxes = boxes[1 - difficulties]
+            labels = labels[1 - difficulties]
+            difficulties = difficulties[1 - difficulties]
+
+        # Skip sample if there are no bounding boxes
+        if boxes.size(0) == 0:
+            # Try next sample (wrap around if at end)
+            next_idx = (idx + 1) % len(self)
+            if next_idx == idx:
+                raise RuntimeError("No samples with bounding boxes found in dataset.")
+            return self.__getitem__(next_idx)
+
+        # Apply transforms if provided
+        if self.transform:
+            image, boxes, labels, difficulties = self.transform(image, boxes, labels, difficulties, split=self.split)
+
+        return image, boxes, labels, difficulties
+        """
+        Retrieve a sample from the dataset at the given index `idx`.
+
+        This method performs the following steps:
+            1. Resolves the file paths for the image and its annotation based on the index.
+            2. Loads the image from disk, converts it to RGB, and transforms it into a normalized PyTorch tensor.
+            3. Parses the corresponding annotation file (e.g., Pascal VOC XML) to extract bounding boxes, labels, and difficulty flags.
+            4. Converts the annotation data into PyTorch tensors.
+            5. Optionally filters out objects marked as 'difficult' if `keep_difficult` is False.
+            6. Applies any provided data transformations (e.g., augmentation, normalization).
+            7. Returns a tuple containing the image tensor, bounding boxes, labels, and difficulties.
+
+        Args:
+            idx (int): Index of the sample to retrieve.
+
+        Returns:
+            tuple: (image, boxes, labels, difficulties)
+            - image (Tensor): Image tensor of shape (3, H, W), normalized to [0, 1].
+            - boxes (Tensor): Bounding boxes, shape (n_objects, 4).
+            - labels (Tensor): Class labels for each object.
+            - difficulties (Tensor): Difficulty flags for each object.
+        """
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        image_path = os.path.join(self.image_folder, self.image_files[idx])
+        annotation_path = os.path.join(self.annotation_folder, self.annotation_files[idx])
+
+        if not os.path.isfile(image_path):
+            raise FileNotFoundError(f"Missing image file: {image_path}")
+        if not os.path.isfile(annotation_path):
+            raise FileNotFoundError(f"Missing annotation file: {annotation_path}")
+
+        # Load image and convert to tensor
         # image = read_image(image_path) frm torchvion.io cannot handle .tiff
         image = Image.open(image_path).convert('RGB')
         image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0  # (C, H, W), normalized
